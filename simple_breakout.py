@@ -8,17 +8,19 @@ import itertools
 # pygame.init()
 # pygame.font.init()
 
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-GREY = (192, 192, 192)
-GREEN = (46, 139, 87)
-RED = (220, 20, 60)
-BLUE = (25, 25, 112)
-BROWN = (244, 164, 96)
-PURPLE = (178, 102, 255)
-ORANGE = (255, 128, 0)
+# BLACK = (0, 0, 0)
+# WHITE = (255, 255, 255)
+# GREY = (192, 192, 192)
+# GREEN = (46, 139, 87)
+# RED = (220, 20, 60)
+# BLUE = (25, 25, 112)
+# BROWN = (244, 164, 96)
+# PURPLE = (178, 102, 255)
+# ORANGE = (255, 128, 0)
+
 HEIGHT = 600
 WIDTH = 800
+
 # FONT = pygame.font.SysFont(None, 60)
 
 # display = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -65,10 +67,13 @@ class Blocks:
     # removes single block from blocks list when it is hit by ball
     # ball being the ball object
     def collided(self, ball_object):
+        collided = 0
         for i in self.blocks:
             if ball_object.collided(i):
                 self.blocks.remove(i)
-        return
+                collided = 1
+                sys.exit(0)
+        return collided
 
 
 class Paddle:
@@ -144,14 +149,18 @@ if __name__ == '__main__':
     running = True
     paddle = Paddle()
     blocks = Blocks()
-    ball = Ball(0, 0)
+
+    # Initialize a stationary ball
+    ball = Ball(5, 5)
     direction = 0
+
     paused = False
     # clock = pygame.time.Clock()
 
     t = 0
+    max_steps = -1
     while running:
-        if len(blocks.blocks) == 0:
+        if len(blocks.blocks) == 0 or t == max_steps:
             print("GAME OVER")
             # pygame.display.flip()
             # pygame.time.wait(2000)
@@ -176,22 +185,32 @@ if __name__ == '__main__':
         #                 ball.speedx = 5
         #                 ball.speedy = 5
         #         continue
-        if not paused:
-            direction = random.choice([-5, 0, 5])
-            paddle.move(direction)
-            ball.move()
-            ball.collided(paddle.rect)
-            blocks.collided(ball)
-            # display.fill(BLACK)
-            # blocks.draw_blocks()
-            # paddle.draw()
-            # ball.draw()
-            print('t: {}, a: {}, s: ({}, {}, {})'.format(t, direction, 
-                ball.x, ball.y, paddle.rect.left))
+        # if not paused:
 
-        else:
-            print("PAUSED")
+        # Agent selects the action
+        action = random.choice([-5, 0, 5])
+
+        # Use the action to progress the env
+        paddle.move(action)
+        ball.move()
+        ball.collided(paddle.rect)
+        # collect the reward
+        reward = blocks.collided(ball)
+
+        # display.fill(BLACK)
+        # blocks.draw_blocks()
+        # paddle.draw()
+        # ball.draw()
+
+        # Print the status
+        print('t: {}, s: ({}, {}, {}), a: {}, r: {}'.format(t, 
+            paddle.rect.left, ball.x, ball.y, action, reward))
+
+        if False:
+            time.sleep(1)
+
+        t += 1
+        # else:
+            # print("PAUSED")
         # pygame.display.flip()
         # clock.tick(60)
-        time.sleep(1/60)
-        t += 1
