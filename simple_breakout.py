@@ -111,53 +111,62 @@ class Ball:
 
 
 if __name__ == '__main__':
-    running = True
-    paddle = Paddle()
-    blocks = Blocks()
+    max_eps = 2
+    max_steps = 5000
 
-    # Initialize a stationary ball
-    ball = Ball(5, 5)
-    direction = 0
+    episode_returns = []
 
-    t = 0
-    max_steps = -1
-    while running:
-        if len(blocks.blocks) == 0 or t == max_steps:
-            print("GAME OVER")
-            sys.exit(0)
+    for ep in range(max_eps):
+        paddle = Paddle()
+        blocks = Blocks()
 
-        # Build the state
-        state = (paddle.rect.left, ball.x, ball.y)
+        # Initialize a moving ball
+        ball = Ball(5, 5)
 
-        # Agent selects the action
-        action = random.choice([-5, 5])
+        # cumulative reward for epiosde
+        ep_return = 0
 
-        # Use the action to progress the env
+        for t in range(max_steps):
+            if len(blocks.blocks) == 0 or t == max_steps:
+                print("GAME OVER")
+                break
 
-        # Move the paddle according to the action selected
-        paddle.move(action)
+            # Build the state
+            state = (paddle.rect.left, ball.x, ball.y)
 
-        # Move the ball according to the collision physics defined
-        ball.move()
+            # Agent selects the action
+            action = random.choice([-5, 5])
 
-        # Check for a collision with the paddle
-        ball.collided(paddle.rect)
+            # Use the action to progress the env
+            # Move the paddle according to the action selected
+            paddle.move(action)
 
-        # Check for a collision with a block
-        # collect the reward
-        reward = blocks.collided(ball)
+            # Move the ball according to the collision physics defined
+            ball.move()
 
-        # Build the new state
-        new_state = (paddle.rect.left, ball.x, ball.y)
+            # Check for a collision with the paddle
+            ball.collided(paddle.rect)
 
-        # Increment the step counter
-        t+= 1
+            # Check for a collision with a block
+            # collect the reward
+            reward = blocks.collided(ball)
+            ep_return += reward
 
-        # args.verbose
-        if True:
-            # Print the status
-            print('t: {}, s: {}, a: {}, r: {}, ns: {}'.format(t, state, action, reward, new_state))
+            # Build the new state
+            new_state = (paddle.rect.left, ball.x, ball.y)
 
-        # args.step_delay
-        if False:
-            time.sleep(0.5)
+            # Increment the step counter
+            t+= 1
+
+            # args.verbose
+            if True:
+                # Print the status
+                print('t: {}, s: {}, a: {}, r: {}, ns: {}'.format(t, state, action, reward, new_state))
+
+            # args.step_delay
+            if False:
+                time.sleep(0.5)
+
+        episode_returns.append(ep_return)
+
+    print('Ep returns: {}'.format(episode_returns))
