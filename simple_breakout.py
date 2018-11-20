@@ -1,31 +1,11 @@
 import sys
 import time
 import random
-# import pygame
-# from pygame.locals import *
 import itertools
-
-# pygame.init()
-# pygame.font.init()
-
-# BLACK = (0, 0, 0)
-# WHITE = (255, 255, 255)
-# GREY = (192, 192, 192)
-# GREEN = (46, 139, 87)
-# RED = (220, 20, 60)
-# BLUE = (25, 25, 112)
-# BROWN = (244, 164, 96)
-# PURPLE = (178, 102, 255)
-# ORANGE = (255, 128, 0)
 
 HEIGHT = 600
 WIDTH = 800
 
-# FONT = pygame.font.SysFont(None, 60)
-
-# display = pygame.display.set_mode((WIDTH, HEIGHT))
-# display.fill(BLACK)
-# pygame.display.set_caption('Atari Breakout')
 
 class Rect:
     def __init__(self, left, top, width, height):
@@ -36,8 +16,11 @@ class Rect:
         self.right = left + width
         self.bottom = top - height
 
-    def move(self, x, y):
+    def move(self, x):
         return Rect(self.left+x, self.top, self.width, self.height)
+
+    def __repr__(self):
+        return 'Rect({}, {}, {}, {})'.format(self.left, self.top, self.width, self.height)
 
 
 class Blocks:
@@ -57,20 +40,13 @@ class Blocks:
                 rects.append(Rect(j, i, self.width, self.height))
         return rects
 
-    # def draw_blocks(self):
-    #     colors = itertools.cycle([RED, GREEN, BLUE, PURPLE, ORANGE])
-    #     for i in self.blocks:
-    #         color = next(colors)
-    #         # pygame.draw.rect(display, color, i)
-    #     return
-
     # removes single block from blocks list when it is hit by ball
     # ball being the ball object
     def collided(self, ball_object):
         collided = 0
-        for i in self.blocks:
-            if ball_object.collided(i):
-                self.blocks.remove(i)
+        for block in self.blocks:
+            if ball_object.collided(block):
+                self.blocks.remove(block)
                 collided = 1
                 sys.exit(0)
         return collided
@@ -87,14 +63,11 @@ class Paddle:
 
     def move(self, speed):
         if self.rect.right + speed > WIDTH or self.rect.left + speed < 0:
-            pass
+            # out of bounds, do not update the paddle position
             return
         else:
-            self.rect = self.rect.move(speed, 0)
-
-    # def draw(self):
-    #     pygame.draw.rect(display, GREY, self.rect)
-    #     return
+            # update the paddel position
+            self.rect = self.rect.move(speed)
 
 
 class Ball:
@@ -104,46 +77,39 @@ class Ball:
         self.x = 400 # WIDTH//2
         self.y = HEIGHT - 60
         self.radius = 10
+        self.speed_magnitude = 5
         self.speedx = speedx
         self.speedy = speedy
 
-    # def draw(self):
-    #     pygame.draw.circle(display, BROWN, (self.x, self.y), self.radius)
-
     def move(self):
+        # check for collision with the right side of the game screen
         if self.x + self.radius + self.speedx >= WIDTH:
             self.speedx = -self.speedx
+
+        # check for collision with the left hand side of the game screen
         elif self.x + self.speedx <= 0:
-            self.speedx = abs(self.speedx)
+            self.speedx = self.speed_magnitude
+
+        # check for collision with the top of the game screen
         if self.y + self.radius + self.speedy >= HEIGHT:
             self.speedy = -self.speedy
+
+        # check for collision with the bottom of the game screen
         elif self.y + self.radius + self.speedy <= 0:
-            self.speedy = abs(self.speedy)
+            self.speedy = self.speed_magnitude
+
+        # update the ball position
         self.x += self.speedx
         self.y += self.speedy
-        return
 
-    # checks if ball has collided with the given pygame rect object
+    # checks if ball has collided with the rect
     # which may be rect of block or paddle
     def collided(self, rect):
-        if rect.left <= self.x + self.radius and\
-                self.x - self.radius <= rect.right:
-            if rect.top < self.y + self.radius < rect.bottom: 
+        if rect.left <= self.x + self.radius and self.x - self.radius <= rect.right:
+            if rect.top < self.y + self.radius < rect.bottom:
                 self.speedy = -self.speedy
                 return True
-        else:
-            return False
 
-
-# def show_text(text):
-#     text = str(text).encode("UTF-8")
-#     print(text)
-#     # display.fill(BLACK)
-#     # my_text = FONT.render(text, True, WHITE)
-#     # width, height = FONT.size(text)
-#     # display.blit(my_text, (WIDTH//2 - width//2, HEIGHT//2 - height//2))
-#     # print(my_text)
-#     return
 
 if __name__ == '__main__':
     running = True
@@ -154,63 +120,45 @@ if __name__ == '__main__':
     ball = Ball(5, 5)
     direction = 0
 
-    paused = False
-    # clock = pygame.time.Clock()
-
     t = 0
     max_steps = -1
     while running:
         if len(blocks.blocks) == 0 or t == max_steps:
             print("GAME OVER")
-            # pygame.display.flip()
-            # pygame.time.wait(2000)
-            # pygame.display.quit()
-            # pygame.quit()
             sys.exit(0)
-        # for e in pygame.event.get():
-        #     if e.type == QUIT:
-        #         # pygame.display.quit()
-        #         # pygame.quit()
-        #         print('exit')
-        #         sys.exit(0)
-        #     elif e.type == KEYDOWN:
-        #         if e.key == K_RIGHT:
-        #             direction = 5
-        #         elif e.key == K_LEFT:
-        #             direction = -5
-        #         elif e.key == K_p:
-        #             paused = not paused
-        #         elif e.key == K_SPACE:
-        #             if ball.speedx == 0 and ball.speedy == 0:
-        #                 ball.speedx = 5
-        #                 ball.speedy = 5
-        #         continue
-        # if not paused:
+
+        # Build the state
+        state = (paddle.rect.left, ball.x, ball.y)
 
         # Agent selects the action
-        action = random.choice([-5, 0, 5])
+        action = random.choice([-5, 5])
 
         # Use the action to progress the env
+
+        # Move the paddle according to the action selected
         paddle.move(action)
+
+        # Move the ball according to the collision physics defined
         ball.move()
+
+        # Check for a collision with the paddle
         ball.collided(paddle.rect)
+
+        # Check for a collision with a block
         # collect the reward
         reward = blocks.collided(ball)
 
-        # display.fill(BLACK)
-        # blocks.draw_blocks()
-        # paddle.draw()
-        # ball.draw()
+        # Build the new state
+        new_state = (paddle.rect.left, ball.x, ball.y)
 
-        # Print the status
-        print('t: {}, s: ({}, {}, {}), a: {}, r: {}'.format(t, 
-            paddle.rect.left, ball.x, ball.y, action, reward))
+        # Increment the step counter
+        t+= 1
 
-        if False:
-            time.sleep(1)
+        # args.verbose
+        if True:
+            # Print the status
+            print('t: {}, s: {}, a: {}, r: {}, ns: {}'.format(t, state, action, reward, new_state))
 
-        t += 1
-        # else:
-            # print("PAUSED")
-        # pygame.display.flip()
-        # clock.tick(60)
+        # args.step_delay
+        if True:
+            time.sleep(0.5)
