@@ -14,7 +14,7 @@ class Rect:
         self.width = width
         self.height = height
         self.right = left + width
-        self.bottom = top - height
+        self.bottom = top + height
 
     def move(self, x):
         return Rect(self.left+x, self.top, self.width, self.height)
@@ -48,7 +48,6 @@ class Blocks:
             if ball_object.collided(block):
                 self.blocks.remove(block)
                 collided = 1
-                sys.exit(0)
         return collided
 
 
@@ -160,5 +159,5 @@ if __name__ == '__main__':
             print('t: {}, s: {}, a: {}, r: {}, ns: {}'.format(t, state, action, reward, new_state))
 
         # args.step_delay
-        if True:
+        if False:
             time.sleep(0.5)
