@@ -1,5 +1,6 @@
 # Secret Breakout
 
+This is a simplified version of breakout made specifically for secret agents learning in secret environments.
 
 ## Install
 
