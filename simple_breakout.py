@@ -16,6 +16,23 @@ from collections import namedtuple
 
 
 ### AGENT ###
+class Normalizer():
+    def __init__(self, input_size):
+        self.n = torch.zeros(input_size)
+        self.mean = torch.zeros(input_size)
+        self.mean_diff = torch.zeros(input_size)
+        self.var = torch.zeros(input_size)
+
+    def observe(self, x):
+        self.n += 1.
+        last_mean = self.mean.clone()
+        self.mean += (x-self.mean)/self.n
+        self.mean_diff += (x-last_mean)*(x-self.mean)
+        self.var = torch.clamp(self.mean_diff/self.n, min=1e-2)
+
+    def normalize(self, inputs):
+        obs_std = torch.sqrt(self.var)
+        return (inputs - self.mean)/obs_std
 
 class Policy(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
@@ -33,14 +50,15 @@ class Policy(nn.Module):
         return action_scores
 
 hidden_size = 32
-learning_rate = 5e-5
-input_size = 32
+learning_rate = 1e-2
+input_size = 30
 output_size = 2
 policy = Policy(input_size=input_size,
                 hidden_size=hidden_size,
                 output_size=output_size)
 optimizer = optim.Adam(policy.parameters(), lr=learning_rate)
 eps = np.finfo(np.float32).eps.item()
+normalizer = Normalizer(input_size=input_size)
 
 
 def select_action(state):
@@ -142,7 +160,7 @@ class Blocks:
 
 class Paddle:
     def __init__(self):
-        self.width = WIDTH // 4
+        self.width = WIDTH // 2
         self.height = 20
         self.initial_x = (WIDTH//2) - (self.width//2)
         self.initial_y = HEIGHT - 50
@@ -164,7 +182,7 @@ class Ball:
     def __init__(self, args, speedx, speedy):
         self.radius = 10
         self.x = WIDTH//2
-        self.y = HEIGHT - 60
+        self.y = HEIGHT - 70
         self.speed_magnitude = 5
         self.speedx = speedx
         self.speedy = speedy
@@ -225,7 +243,7 @@ def main(args):
         blocks = Blocks()
 
         # Initialize a moving ball
-        # ball = Ball(random.choice([-5, 5]), random.choice([-5, 5]))
+        # ball = Ball(args, random.choice([-5, 5]), random.choice([-5, 5]))
         ball = Ball(args, 5, 5)
 
         # start a timer for time checking
@@ -235,40 +253,49 @@ def main(args):
             if len(blocks.blocks) == 0:
                 if args.verbose:
                     print('t: {}, no more blocks, end ep'.format(t))
-                    reward = 100
+                    reward = 0
+                    policy.rewards.append(reward)
                     break
 
             if t == args.env_max_steps:
                 if args.verbose:
                     print('t: {}, max timesteps, end ep'.format(t))
-                    reward = -100
+                    reward = 0
+                    policy.rewards.append(reward)
                     break
 
             # BUILD THE STATE
             block_locs = blocks.block_locations()
             state_temp = [
-                     paddle.rect.left - ball.x,
                      paddle.rect.left,
                      ball.x,
                      ball.y,
                      ball.speedx,
                      ball.speedy,
-                     blocks.num_blocks_start,
-                     blocks.num_blocks_destroyed,]
+                     blocks.num_blocks_destroyed]
             state_temp.extend(block_locs)
 
             if args.verbose:
                 print('b: {},{}, p: {}'.format(
                     ball.x, ball.y, paddle.rect.left))
+
             state = torch.Tensor(state_temp)
+
+            # normalize the state
+            if True:
+                normalizer.observe(state)
+                state = normalizer.normalize(state)
+
 
             # Agent selects the action
             ## REINFORCE ACTION SELECTION
             actions = [-5, 5]
             action_temp = select_action(state)
             action = actions[np.argmax(action_temp)]
-            ## RANDOM ACTION SELECTION
-            action = random.choice([-5, 5])
+
+            if args.random_action:
+                ## RANDOM ACTION SELECTION
+                action = random.choice([-5, 5])
 
             # Use the action to progress the env
             # Move the paddle according to the action selected
@@ -278,7 +305,7 @@ def main(args):
             ball_update = ball.move()
 
             if not ball_update:
-                reward = -10
+                reward = -100
                 policy.rewards.append(reward)
                 if args.verbose:
                     print('t: {}, a: {}, r: {}'.format(t, action, reward))
@@ -286,9 +313,9 @@ def main(args):
 
             # Check for a collision with a block
             # collect the reward
-            base_reward = 0
+            base_reward = 1
             if blocks.collided(ball):
-                bonus_block = 10
+                bonus_block = 5
             else:
                 bonus_block = 0
 
@@ -325,15 +352,17 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description = 'Arguments for Simple Breakout')
-    parser.add_argument('--log_interval', type=int, default=1, metavar='N',
+    parser.add_argument('--log_interval', type=int, default=10, metavar='N',
                         help='interval between status logs (default: 10)')
-    parser.add_argument('--max_episodes', type=int, default=1,
+    parser.add_argument('--max_episodes', type=int, default=500,
                         help='maximum number of episodes to run')
     parser.add_argument('--verbose', action='store_true',
         help='output verbose logging for steps')
+    parser.add_argument('--random_action', action='store_true',
+        help='Random policy for comparison')
     parser.add_argument('--env_max_steps',
-                        help='Max steps each episode', default=300)
-    parser.add_argument('--gamma', type=float, default=0.98, metavar='G',
+                        help='Max steps each episode', default=500)
+    parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
                         help='discount factor (default: 0.99)')
     parser.add_argument('--seed', type=int, metavar='N',
                         help='random seed')
