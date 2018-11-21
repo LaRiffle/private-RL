@@ -59,7 +59,7 @@ class Blocks:
 
 class Paddle:
     def __init__(self):
-        self.width = WIDTH * 0.9
+        self.width = WIDTH // 4
         self.height = 10
         self.initial_x = (WIDTH//2) - (self.width//2)
         self.initial_y = HEIGHT - 50 

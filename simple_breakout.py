@@ -33,8 +33,8 @@ class Policy(nn.Module):
         return action_scores
 
 hidden_size = 32
-learning_rate = 1e-2
-input_size = 7
+learning_rate = 5e-5
+input_size = 32
 output_size = 2
 policy = Policy(input_size=input_size,
                 hidden_size=hidden_size,
@@ -83,11 +83,19 @@ class Rect:
         self.top = top
         self.width = width
         self.height = height
-        self.right = left + width
-        self.bottom = top + height
+        self.right = left + self.width
+        self.bottom = top + self.height
 
     def move(self, x):
         return Rect(self.left+x, self.top, self.width, self.height)
+
+    def destroyed(self):
+        self.left = -1
+        self.top = -1
+        self.width = -1
+        self.height = -1
+        self.right = -1
+        self.bottom = -1
 
     def __repr__(self):
         return 'Rect({}, {}, {}, {})'.format(
@@ -100,6 +108,8 @@ class Blocks:
         self.width = 100
         self.height = 20
         self.blocks = self.make_blocks()
+        self.num_blocks_start = len(self.blocks)
+        self.num_blocks_destroyed = 0
 
     def make_blocks(self):
         rects = []
@@ -116,13 +126,23 @@ class Blocks:
         collided = False
         for block in self.blocks:
             if ball_object.collided(block, 'block'):
-                self.blocks.remove(block)
+                # self.blocks.remove(block)
+                # set the block to destroyed if collision occured
+                block.destroyed()
                 collided = True
+                self.num_blocks_destroyed += 1
         return collided
+
+    def block_locations(self):
+        block_locs = [-1] * (2*self.num_blocks_start)
+        for i,block in enumerate(self.blocks):
+            block_locs[2*i] = block.left
+            block_locs[(2*i)+1] = block.top
+        return block_locs
 
 class Paddle:
     def __init__(self):
-        self.width = WIDTH * 0.9
+        self.width = WIDTH // 4
         self.height = 20
         self.initial_x = (WIDTH//2) - (self.width//2)
         self.initial_y = HEIGHT - 50
@@ -132,6 +152,7 @@ class Paddle:
     def move(self, speed):
         if self.rect.right + speed > WIDTH or self.rect.left + speed < 0:
             # out of bounds, do not update the paddle position
+            # print('paddle collide with side of screen')
             return
         else:
             # update the paddel position
@@ -140,34 +161,39 @@ class Paddle:
 class Ball:
     """Ball object that takes initial speed in x direction (speedx)
         and initial speed in y direction(speedy)"""
-    def __init__(self, speedx, speedy):
+    def __init__(self, args, speedx, speedy):
         self.radius = 10
         self.x = WIDTH//2
         self.y = HEIGHT - 60
         self.speed_magnitude = 5
         self.speedx = speedx
         self.speedy = speedy
+        self.args = args
 
     def move(self):
         # check for collision with the right side of the game screen
         if self.x + self.radius + self.speedx >= WIDTH:
-            #print('ball collide with right side of screen')
+            if args.verbose:
+                print('ball collide with right side of screen')
             self.speedx = -self.speed_magnitude
 
         # check for collision with the left hand side of the game screen
         elif self.x + self.speedx <= 0:
-            #print('ball collide with left side of screen')
+            if args.verbose:
+                print('ball collide with left side of screen')
             self.speedx = self.speed_magnitude
 
         # check for collision with the bottom of the game screen
         if self.y + self.radius + self.speedy >= HEIGHT:
-            #print('ball collide with bottom of screen')
+            if args.verbose:
+                print('ball collide with bottom of screen')
             self.speedy = -self.speed_magnitude
             return False
 
         # check for collision with the top of the game screen
         elif self.y + self.radius + self.speedy <= 0:
-            #print('ball collide with top of screen')
+            if args.verbose:
+                print('ball collide with top of screen')
             self.speedy = self.speed_magnitude
 
         # update the ball position
@@ -181,8 +207,11 @@ class Ball:
         if ((rect.left <= self.x + self.radius) and
             (self.x - self.radius <= rect.right)):
             if rect.top < self.y + self.radius < rect.bottom:
-                # print('ball collide with {}'.format(collider))
+                if args.verbose:
+                    print('ball collide with {}'.format(collider))
                 self.speedy = -self.speedy
+                # add an extra displacement to avoid double collision
+                self.y += self.speedy
                 return True
 
 
@@ -197,7 +226,7 @@ def main(args):
 
         # Initialize a moving ball
         # ball = Ball(random.choice([-5, 5]), random.choice([-5, 5]))
-        ball = Ball(5, 5)
+        ball = Ball(args, 5, 5)
 
         # start a timer for time checking
         last_time = time.time()
@@ -206,41 +235,40 @@ def main(args):
             if len(blocks.blocks) == 0:
                 if args.verbose:
                     print('t: {}, no more blocks, end ep'.format(t))
-                    reward = 0
+                    reward = 100
                     break
 
             if t == args.env_max_steps:
                 if args.verbose:
                     print('t: {}, max timesteps, end ep'.format(t))
-                    reward = 0
+                    reward = -100
                     break
 
-            state = torch.Tensor([
+            # BUILD THE STATE
+            block_locs = blocks.block_locations()
+            state_temp = [
                      paddle.rect.left - ball.x,
-                     paddle.rect.left + (paddle.rect.width//2) // float(WIDTH),
-                     ball.x//float(WIDTH),
-                     ball.y//float(HEIGHT),
-                     ball.speedx//float(5),
-                     ball.speedy//float(5),
-                     len(blocks.blocks)])
+                     paddle.rect.left,
+                     ball.x,
+                     ball.y,
+                     ball.speedx,
+                     ball.speedy,
+                     blocks.num_blocks_start,
+                     blocks.num_blocks_destroyed,]
+            state_temp.extend(block_locs)
 
-            # state = torch.Tensor([
-            #          paddle.rect.left,
-            #          ball.x,
-            #          ball.y,
-            #          ball.speedx,
-            #          ball.speedy,
-            #          len(blocks.blocks)])
+            if args.verbose:
+                print('b: {},{}, p: {}'.format(
+                    ball.x, ball.y, paddle.rect.left))
+            state = torch.Tensor(state_temp)
 
             # Agent selects the action
-
-            ## RANDOM ACTION SELECTION
-            # action = random.choice([-5, 5])
-
             ## REINFORCE ACTION SELECTION
             actions = [-5, 5]
             action_temp = select_action(state)
             action = actions[np.argmax(action_temp)]
+            ## RANDOM ACTION SELECTION
+            action = random.choice([-5, 5])
 
             # Use the action to progress the env
             # Move the paddle according to the action selected
@@ -253,8 +281,7 @@ def main(args):
                 reward = -10
                 policy.rewards.append(reward)
                 if args.verbose:
-                    print('t: {}, s: {}, a: {}, r: {}'.format(
-                        t, state.numpy(), action, reward))
+                    print('t: {}, a: {}, r: {}'.format(t, action, reward))
                 break
 
             # Check for a collision with a block
@@ -267,7 +294,7 @@ def main(args):
 
             # Check for a collision with the paddle
             if ball.collided(paddle.rect, 'paddle'):
-                bonus_paddle = 0
+                bonus_paddle = 2
             else:
                 bonus_paddle = 0
 
@@ -275,13 +302,11 @@ def main(args):
             policy.rewards.append(reward)
 
             if args.verbose:
-                print('t: {}, s: {}, a: {}, r: {}'.format(
-                    t, state.numpy(), action, reward))
+                print('t: {}, a: {}, r: {}'.format(t, action, reward))
 
             # Increment the step counter
             t += 1
 
-        num_blocks_remain = len(blocks.blocks)
         episode_returns.append(np.sum(policy.rewards))
         episode_timesteps.append(t)
 
@@ -293,7 +318,7 @@ def main(args):
 
         if ep % args.log_interval == 0:
             print('ep: {}, b: {}, t: {}, L: {}, R: {:.2f}, R_av_5: {:.2f}'.format(
-                ep, num_blocks_remain, t, round(policy_loss, 2),
+                ep, blocks.num_blocks_destroyed, t, round(policy_loss, 2),
                 episode_returns[-1], np.mean(episode_returns[-5:])))
 
 
@@ -307,11 +332,11 @@ if __name__ == '__main__':
     parser.add_argument('--verbose', action='store_true',
         help='output verbose logging for steps')
     parser.add_argument('--env_max_steps',
-                        help='Max steps each episode', default=100)
-    parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
+                        help='Max steps each episode', default=300)
+    parser.add_argument('--gamma', type=float, default=0.98, metavar='G',
                         help='discount factor (default: 0.99)')
-    parser.add_argument('--seed', type=int, default=1017, metavar='N',
-                        help='random seed (default: 1017)')
+    parser.add_argument('--seed', type=int, metavar='N',
+                        help='random seed')
     args = parser.parse_args()
 
     if args.seed:
