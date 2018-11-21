@@ -20,8 +20,8 @@ from collections import namedtuple
 class Policy(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
         super(Policy, self).__init__()
-        self.affine1 = nn.Linear(input_size, hidden_size, bias=True)
-        self.affine2 = nn.Linear(hidden_size, output_size, bias=True)
+        self.affine1 = nn.Linear(input_size, hidden_size, bias=False)
+        self.affine2 = nn.Linear(hidden_size, output_size, bias=False)
         self.saved_log_probs = []
         self.rewards = []
 
@@ -33,7 +33,7 @@ class Policy(nn.Module):
         return action_scores
 
 hidden_size = 4
-learning_rate = 1e-4
+learning_rate = 1e-2
 input_size = 6
 output_size = 2
 policy = Policy(input_size=input_size,
@@ -61,7 +61,7 @@ def finish_episode():
         R = r + args.gamma * R
         rewards.insert(0, R)
     rewards = torch.Tensor(rewards)
-    # rewards = (rewards - rewards.mean()) / (rewards.std() + eps)
+    rewards = (rewards - rewards.mean()) / (rewards.std() + eps)
     for log_prob, reward in zip(policy.saved_log_probs, rewards):
         policy_loss.append(-log_prob * reward)
     optimizer.zero_grad()
@@ -74,8 +74,8 @@ def finish_episode():
 
 
 ### ENV #####
-HEIGHT = 600
-WIDTH = 800
+HEIGHT = 300
+WIDTH = 400
 
 class Rect:
     def __init__(self, left, top, width, height):
@@ -104,7 +104,7 @@ class Blocks:
     def make_blocks(self):
         rects = []
         rows = 5
-        rows_height = 120
+        rows_height = HEIGHT//rows
         for i in range(0, rows_height, self.height):
             for j in range(0, WIDTH, self.width):
                 rects.append(Rect(j, i, self.width, self.height))
@@ -113,18 +113,18 @@ class Blocks:
     # removes single block from blocks list when it is hit by ball
     # ball being the ball object
     def collided(self, ball_object):
-        collided = 0
+        collided = False
         for block in self.blocks:
             if ball_object.collided(block, 'block'):
                 self.blocks.remove(block)
-                collided = 100
+                collided = True
         return collided
 
 class Paddle:
     def __init__(self):
-        self.width = WIDTH // 4
+        self.width = WIDTH * 0.9
         self.height = 10
-        self.initial_x = WIDTH // 2
+        self.initial_x = (WIDTH//2) - (self.width//2)
         self.initial_y = HEIGHT - 50
         self.rect = Rect(self.initial_x, self.initial_y, 
                          self.width, self.height)
@@ -141,9 +141,9 @@ class Ball:
     """Ball object that takes initial speed in x direction (speedx)
         and initial speed in y direction(speedy)"""
     def __init__(self, speedx, speedy):
-        self.x = WIDTH // 2
-        self.y = HEIGHT // 2
         self.radius = 10
+        self.x = WIDTH//2
+        self.y = HEIGHT - 60
         self.speed_magnitude = 5
         self.speedx = speedx
         self.speedy = speedy
@@ -151,23 +151,24 @@ class Ball:
     def move(self):
         # check for collision with the right side of the game screen
         if self.x + self.radius + self.speedx >= WIDTH:
-            # print('collision with right side of screen')
+            #print('ball collide with right side of screen')
             self.speedx = -self.speed_magnitude
 
         # check for collision with the left hand side of the game screen
         elif self.x + self.speedx <= 0:
-            # print('collision with left side of screen')
+            #print('ball collide with left side of screen')
             self.speedx = self.speed_magnitude
 
         # check for collision with the bottom of the game screen
         if self.y + self.radius + self.speedy >= HEIGHT:
-            # print('collision with bottom of screen')
+            #print('ball collide with bottom of screen')
+            self.speedy = -self.speed_magnitude
             return False
 
         # check for collision with the top of the game screen
         elif self.y + self.radius + self.speedy <= 0:
-            # print('collision with top of screen')
-            self.speedy = -self.speed_magnitude
+            #print('ball collide with top of screen')
+            self.speedy = self.speed_magnitude
 
         # update the ball position
         self.x += self.speedx
@@ -214,14 +215,21 @@ def main(args):
                     reward = 0
                     break
 
-            # Build the state
+            # state = torch.Tensor([
+            #          paddle.rect.left + (paddle.rect.width//2) // float(WIDTH),
+            #          ball.x//float(WIDTH),
+            #          ball.y//float(HEIGHT),
+            #          ball.speedx//float(5),
+            #          ball.speedy//float(5),
+            #          len(blocks.blocks)])
+
             state = torch.Tensor([
-                     paddle.rect.left/float(WIDTH),
-                     ball.x/float(WIDTH),
-                     ball.y/float(HEIGHT),
-                     ball.speedx/float(5),
-                     ball.speedy/float(5),
-                     len(blocks.blocks)/float(48)])
+                     paddle.rect.left,
+                     ball.x,
+                     ball.y,
+                     ball.speedx,
+                     ball.speedy,
+                     len(blocks.blocks)])
 
             # Agent selects the action
 
@@ -229,7 +237,7 @@ def main(args):
             # action = random.choice([-5, 5])
 
             ## REINFORCE ACTION SELECTION
-            actions = [-10, 10]
+            actions = [-5, 5]
             action_temp = select_action(state)
             action = actions[np.argmax(action_temp)]
 
@@ -239,9 +247,6 @@ def main(args):
 
             # Move the ball according to the collision physics defined
             ball_update = ball.move()
-
-            # Check for a collision with the paddle
-            ball.collided(paddle.rect, 'paddle')
 
             if not ball_update:
                 reward = -10
@@ -253,59 +258,59 @@ def main(args):
 
             # Check for a collision with a block
             # collect the reward
-            base_reward = 1
-            bonus_reward = blocks.collided(ball)
-            reward = bonus_reward + base_reward
+            base_reward = 0
+            if blocks.collided(ball):
+                bonus_block = 10
+            else:
+                bonus_block = 0
+
+            # Check for a collision with the paddle
+            if ball.collided(paddle.rect, 'paddle'):
+                bonus_paddle = 0
+            else:
+                bonus_paddle = 0
+
+            reward = base_reward + bonus_paddle + bonus_block
             policy.rewards.append(reward)
 
             if args.verbose:
-                print('t: {}, a: {}, r: {}'.format(
-                    t, action, reward))
-
-            # sleep if necessary
-            if args.step_delay:
-                time.sleep(args.step_delay)
+                print('t: {}, s: {}, a: {}, r: {}'.format(
+                    t, state.numpy(), action, reward))
 
             # Increment the step counter
             t += 1
 
-        num_blocks_crushed = 48 - len(blocks.blocks)
+        num_blocks_remain = len(blocks.blocks)
         episode_returns.append(np.sum(policy.rewards))
         episode_timesteps.append(t)
+
         # calculate the policy loss, update the model
         # clear saved rewards and log probs
-        policy_loss = finish_episode()
+        policy_loss_temp = finish_episode()
+        policy_loss = policy_loss_temp.data[0]
+        # policy_loss = 0
+
         if ep % args.log_interval == 0:
             print('ep: {}, b: {}, t: {}, L: {}, R: {:.2f}, R_av_5: {:.2f}'.format(
-                ep, num_blocks_crushed, t, round(policy_loss.data[0], 2),
+                ep, num_blocks_remain, t, round(policy_loss, 2),
                 episode_returns[-1], np.mean(episode_returns[-5:])))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description = 'Arguments for Simple Breakout')
-    parser.add_argument('--log_interval', type=int, default=10, metavar='N',
+    parser.add_argument('--log_interval', type=int, default=1, metavar='N',
                         help='interval between status logs (default: 10)')
-    parser.add_argument('--max_episodes', type=int, default=10,
+    parser.add_argument('--max_episodes', type=int, default=1,
                         help='maximum number of episodes to run')
-    parser.add_argument('--verbose', action='store_true', 
+    parser.add_argument('--verbose', action='store_true',
         help='output verbose logging for steps')
-    parser.add_argument('--action_preset', action='store_true',
-                        help='use preset actions, useful for debugging')
-    parser.add_argument('--step_delay',
-                        help='delay after each step, useful for debugging',
-                        default=0)
     parser.add_argument('--env_max_steps',
-                        help='Max steps each episode', default=1000)
-    parser.add_argument('--gamma', type=float, default=0.998, metavar='G',
+                        help='Max steps each episode', default=100)
+    parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
                         help='discount factor (default: 0.99)')
     parser.add_argument('--seed', type=int, default=1017, metavar='N',
                         help='random seed (default: 1017)')
-    parser.add_argument('--num_runs', type=int, default=5,
-                        help='number of runs to perform')
-    parser.add_argument('--exp_name_prefix', type=str, 
-                        default='default_exp_name_prefix',
-                        help='prefix to name of experiment')
     args = parser.parse_args()
 
     if args.seed:

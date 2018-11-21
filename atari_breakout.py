@@ -15,8 +15,8 @@ BLUE = (25, 25, 112)
 BROWN = (244, 164, 96)
 PURPLE = (178, 102, 255)
 ORANGE = (255, 128, 0)
-HEIGHT = 600
-WIDTH = 800
+HEIGHT = 300
+WIDTH = 400
 FONT = pygame.font.SysFont(None, 60)
 
 display = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -59,7 +59,7 @@ class Blocks:
 
 class Paddle:
     def __init__(self):
-        self.width = 150
+        self.width = WIDTH * 0.9
         self.height = 10
         self.initial_x = (WIDTH//2) - (self.width//2)
         self.initial_y = HEIGHT - 50 
