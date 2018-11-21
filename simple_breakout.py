@@ -32,9 +32,9 @@ class Policy(nn.Module):
         action_scores = F.softmax(x, dim=0)
         return action_scores
 
-hidden_size = 4
+hidden_size = 32
 learning_rate = 1e-2
-input_size = 6
+input_size = 7
 output_size = 2
 policy = Policy(input_size=input_size,
                 hidden_size=hidden_size,
@@ -123,7 +123,7 @@ class Blocks:
 class Paddle:
     def __init__(self):
         self.width = WIDTH * 0.9
-        self.height = 10
+        self.height = 20
         self.initial_x = (WIDTH//2) - (self.width//2)
         self.initial_y = HEIGHT - 50
         self.rect = Rect(self.initial_x, self.initial_y, 
@@ -215,21 +215,22 @@ def main(args):
                     reward = 0
                     break
 
-            # state = torch.Tensor([
-            #          paddle.rect.left + (paddle.rect.width//2) // float(WIDTH),
-            #          ball.x//float(WIDTH),
-            #          ball.y//float(HEIGHT),
-            #          ball.speedx//float(5),
-            #          ball.speedy//float(5),
-            #          len(blocks.blocks)])
-
             state = torch.Tensor([
-                     paddle.rect.left,
-                     ball.x,
-                     ball.y,
-                     ball.speedx,
-                     ball.speedy,
+                     paddle.rect.left - ball.x,
+                     paddle.rect.left + (paddle.rect.width//2) // float(WIDTH),
+                     ball.x//float(WIDTH),
+                     ball.y//float(HEIGHT),
+                     ball.speedx//float(5),
+                     ball.speedy//float(5),
                      len(blocks.blocks)])
+
+            # state = torch.Tensor([
+            #          paddle.rect.left,
+            #          ball.x,
+            #          ball.y,
+            #          ball.speedx,
+            #          ball.speedy,
+            #          len(blocks.blocks)])
 
             # Agent selects the action
 
