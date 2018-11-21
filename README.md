@@ -28,3 +28,7 @@ python reinforce_breakout.py
 ```sh
 python reinforce_breakout.py --random_action
 ```
+
+## Credits
+
+This is based on the [simple Breakout game by Arthur198](https://gist.github.com/Arthur198/4a6ac71b8d646fb2fad6be347997ca77#file-atari_breakout-py)
