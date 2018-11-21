@@ -2,10 +2,13 @@ import sys
 import time
 import random
 import itertools
+from tqdm import tqdm
 
 HEIGHT = 600
 WIDTH = 800
 
+def mean(numbers):
+    return float(sum(numbers)) / max(len(numbers), 1)
 
 class Rect:
     def __init__(self, left, top, width, height):
@@ -95,11 +98,12 @@ class Ball:
 
         # check for collision with the bottom of the game screen
         elif self.y + self.radius + self.speedy <= 0:
-            self.speedy = self.speed_magnitude
+            return False
 
         # update the ball position
         self.x += self.speedx
         self.y += self.speedy
+        return True
 
     # checks if ball has collided with the rect
     # which may be rect of block or paddle
@@ -111,12 +115,13 @@ class Ball:
 
 
 if __name__ == '__main__':
-    max_eps = 2
-    max_steps = 5000
-
+    # max_eps
+    max_eps = 20
+    # max_steps
+    max_steps = 10000
     episode_returns = []
 
-    for ep in range(max_eps):
+    for ep in tqdm(range(max_eps)):
         paddle = Paddle()
         blocks = Blocks()
 
@@ -128,11 +133,10 @@ if __name__ == '__main__':
 
         for t in range(max_steps):
             if len(blocks.blocks) == 0 or t == max_steps:
-                print("GAME OVER")
                 break
 
             # Build the state
-            state = (paddle.rect.left, ball.x, ball.y)
+            state = (paddle.rect.left, ball.x, ball.y, ball.speedx, ball.speedy)
 
             # Agent selects the action
             action = random.choice([-5, 5])
@@ -142,7 +146,15 @@ if __name__ == '__main__':
             paddle.move(action)
 
             # Move the ball according to the collision physics defined
-            ball.move()
+            ball_update = ball.move()
+
+            if not ball_update:
+                # verbose
+                if True:
+                    print('t: {}, ball out, end ep'.format(t))
+                reward = -48
+                ep_return += reward
+                break
 
             # Check for a collision with the paddle
             ball.collided(paddle.rect)
@@ -152,16 +164,13 @@ if __name__ == '__main__':
             reward = blocks.collided(ball)
             ep_return += reward
 
-            # Build the new state
-            new_state = (paddle.rect.left, ball.x, ball.y)
-
             # Increment the step counter
             t+= 1
 
             # args.verbose
-            if True:
+            if False:
                 # Print the status
-                print('t: {}, s: {}, a: {}, r: {}, ns: {}'.format(t, state, action, reward, new_state))
+                print('t: {}, s: {}, a: {}, r: {}'.format(t, state, action, reward))
 
             # args.step_delay
             if False:
@@ -170,3 +179,4 @@ if __name__ == '__main__':
         episode_returns.append(ep_return)
 
     print('Ep returns: {}'.format(episode_returns))
+    print('Mean episode return: {}'.format(mean(episode_returns)))
