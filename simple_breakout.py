@@ -23,7 +23,8 @@ class Rect:
         return Rect(self.left+x, self.top, self.width, self.height)
 
     def __repr__(self):
-        return 'Rect({}, {}, {}, {})'.format(self.left, self.top, self.width, self.height)
+        return 'Rect({}, {}, {}, {})'.format(
+            self.left, self.top, self.width, self.height)
 
 
 class Blocks:
@@ -112,7 +113,8 @@ class Ball:
     # checks if ball has collided with the rect
     # which may be rect of block or paddle
     def collided(self, rect, collider):
-        if rect.left <= self.x + self.radius and self.x - self.radius <= rect.right:
+        if ((rect.left <= self.x + self.radius) and 
+            (self.x - self.radius <= rect.right)):
             if rect.top < self.y + self.radius < rect.bottom:
                 # print('ball collide with {}'.format(collider))
                 self.speedy = -self.speedy
@@ -123,7 +125,7 @@ def main(args):
     episode_returns = []
     episode_timesteps = []
 
-    for ep in range(args.max_eps):
+    for ep in range(args.max_episodes):
         paddle = Paddle()
         blocks = Blocks()
 
@@ -133,7 +135,7 @@ def main(args):
         # cumulative reward for epiosde
         ep_return = 0
 
-        for t in range(args.max_steps):
+        for t in range(args.env_max_steps):
             if len(blocks.blocks) == 0:
                 if args.verbose:
                     print('t: {}, no more blocks, end ep'.format(t))
@@ -141,9 +143,11 @@ def main(args):
                     ep_return += reward
                     break
 
-            if t == args.max_steps:
+            if t == args.env_max_steps:
                 if args.verbose:
                     print('t: {}, max timesteps, end ep'.format(t))
+                    reward = 0
+                    ep_return += reward
                     break
 
             # Build the state
@@ -181,7 +185,8 @@ def main(args):
             t+= 1
 
             if args.verbose:
-                print('t: {}, s: {}, a: {}, r: {}'.format(t, state, action, reward))
+                print('t: {}, s: {}, a: {}, r: {}'.format(
+                    t, state, action, reward))
 
             time.sleep(args.step_delay)
 
@@ -195,15 +200,27 @@ def main(args):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description = 'Arguments for Simple Breakout')
-    parser.add_argument('--verbose', help='verbose logging', default=False)
-    parser.add_argument('--step_delay', help='delay after each step', default=0)
-    parser.add_argument('--max_eps', help='Maximum number of episodes', default=10)
-    parser.add_argument('--max_steps', help='Maximum number of steps each episode', default=1000)
-    parser.add_argument('--random_seed', help='Random seed')
+    parser = argparse.ArgumentParser(
+        description = 'Arguments for Simple Breakout')
+    parser.add_argument('--log_interval', type=int, default=10, metavar='N',
+                        help='interval between status logs (default: 10)')
+    parser.add_argument('--max_episodes', type=int, default=10,
+                        help='maximum number of episodes to run')
+    parser.add_argument('--verbose',  help='output verbose logging for steps')
+    parser.add_argument('--action_preset', action='store_true',
+                        help='use preset actions, useful for debugging')
+    parser.add_argument('--step_delay',
+                        help='delay after each step, useful for debugging',
+                        default=0)
+    parser.add_argument('--env_max_steps',
+                        help='Max steps each episode', default=1000)
+    parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
+                        help='discount factor (default: 0.99)')
+    parser.add_argument('--seed', type=int, default=1017, metavar='N',
+                        help='random seed (default: 1017)')
     args = parser.parse_args()
 
-    if args.random_seed:
-        random.seed(args.random_seed)
+    if args.seed:
+        random.seed(args.seed)
 
     main(args)
