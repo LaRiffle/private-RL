@@ -4,9 +4,7 @@ import random
 import argparse
 import itertools
 import numpy as np
-from tqdm import tqdm
 
-# random.seed(1017)
 
 HEIGHT = 600
 WIDTH = 800
@@ -88,22 +86,22 @@ class Ball:
     def move(self):
         # check for collision with the right side of the game screen
         if self.x + self.radius + self.speedx >= WIDTH:
-            print('collision with right side of screen')
+            # print('collision with right side of screen')
             self.speedx = -self.speedx
 
         # check for collision with the left hand side of the game screen
         elif self.x + self.speedx <= 0:
-            print('collision with left side of screen')
+            # print('collision with left side of screen')
             self.speedx = self.speed_magnitude
 
         # check for collision with the top of the game screen
         if self.y + self.radius + self.speedy >= HEIGHT:
-            print('collision with bottom of screen')
+            # print('collision with bottom of screen')
             return False
 
         # check for collision with the bottom of the game screen
         elif self.y + self.radius + self.speedy <= 0:
-            print('collision with top of screen')
+            # print('collision with top of screen')
             self.speedy = -self.speedy
 
         # update the ball position
@@ -198,10 +196,11 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Arguments for Simple Breakout')
-    parser.add_argument('--verbose', help='verbose logging', default=True)
+    parser.add_argument('--verbose', help='verbose logging', default=False)
     parser.add_argument('--step_delay', help='delay after each step', default=0)
     parser.add_argument('--max_eps', help='Maximum number of episodes', default=10)
-    parser.add_argument('--max_steps', help='Maximum number of steps each episode', default=100000)
+    parser.add_argument('--max_steps', help='Maximum number of steps each episode', default=1000)
+    parser.add_argument('--random_seed', help='Random seed', default=1017)
     args = parser.parse_args()
-
+    random.seed(args.random_seed)
     main(args)

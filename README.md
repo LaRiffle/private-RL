@@ -1,5 +1,7 @@
 # secret-breakout
 
+## Run
+
 ```sh
-pip install pygame
+python simple_breakout.py
 ```
