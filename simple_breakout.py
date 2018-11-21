@@ -200,7 +200,10 @@ if __name__ == '__main__':
     parser.add_argument('--step_delay', help='delay after each step', default=0)
     parser.add_argument('--max_eps', help='Maximum number of episodes', default=10)
     parser.add_argument('--max_steps', help='Maximum number of steps each episode', default=1000)
-    parser.add_argument('--random_seed', help='Random seed', default=1017)
+    parser.add_argument('--random_seed', help='Random seed')
     args = parser.parse_args()
-    random.seed(args.random_seed)
+
+    if args.random_seed:
+        random.seed(args.random_seed)
+
     main(args)
