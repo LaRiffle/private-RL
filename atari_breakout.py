@@ -15,8 +15,8 @@ BLUE = (25, 25, 112)
 BROWN = (244, 164, 96)
 PURPLE = (178, 102, 255)
 ORANGE = (255, 128, 0)
-HEIGHT = 300
-WIDTH = 400
+HEIGHT = 600
+WIDTH = 800
 FONT = pygame.font.SysFont(None, 60)
 
 display = pygame.display.set_mode((WIDTH, HEIGHT))
