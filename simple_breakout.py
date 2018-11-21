@@ -33,8 +33,8 @@ class Policy(nn.Module):
         return action_scores
 
 hidden_size = 4
-learning_rate = 1e-3
-input_size = 7
+learning_rate = 1e-4
+input_size = 6
 output_size = 2
 policy = Policy(input_size=input_size,
                 hidden_size=hidden_size,
@@ -122,9 +122,9 @@ class Blocks:
 
 class Paddle:
     def __init__(self):
-        self.width = 150
+        self.width = WIDTH // 4
         self.height = 10
-        self.initial_x = 400 # random.randint(0, 650)
+        self.initial_x = WIDTH // 2
         self.initial_y = HEIGHT - 50
         self.rect = Rect(self.initial_x, self.initial_y, 
                          self.width, self.height)
@@ -141,8 +141,8 @@ class Ball:
     """Ball object that takes initial speed in x direction (speedx)
         and initial speed in y direction(speedy)"""
     def __init__(self, speedx, speedy):
-        self.x = 300 # random.randint(200, 400)
-        self.y = 300 # HEIGHT - random.randint(200, 400)
+        self.x = WIDTH // 2
+        self.y = HEIGHT // 2
         self.radius = 10
         self.speed_magnitude = 5
         self.speedx = speedx
@@ -152,22 +152,22 @@ class Ball:
         # check for collision with the right side of the game screen
         if self.x + self.radius + self.speedx >= WIDTH:
             # print('collision with right side of screen')
-            self.speedx = -self.speedx
+            self.speedx = -self.speed_magnitude
 
         # check for collision with the left hand side of the game screen
         elif self.x + self.speedx <= 0:
             # print('collision with left side of screen')
             self.speedx = self.speed_magnitude
 
-        # check for collision with the top of the game screen
+        # check for collision with the bottom of the game screen
         if self.y + self.radius + self.speedy >= HEIGHT:
             # print('collision with bottom of screen')
             return False
 
-        # check for collision with the bottom of the game screen
+        # check for collision with the top of the game screen
         elif self.y + self.radius + self.speedy <= 0:
             # print('collision with top of screen')
-            self.speedy = -self.speedy
+            self.speedy = -self.speed_magnitude
 
         # update the ball position
         self.x += self.speedx
@@ -177,7 +177,7 @@ class Ball:
     # checks if ball has collided with the rect
     # which may be rect of block or paddle
     def collided(self, rect, collider):
-        if ((rect.left <= self.x + self.radius) and 
+        if ((rect.left <= self.x + self.radius) and
             (self.x - self.radius <= rect.right)):
             if rect.top < self.y + self.radius < rect.bottom:
                 # print('ball collide with {}'.format(collider))
@@ -217,12 +217,11 @@ def main(args):
             # Build the state
             state = torch.Tensor([
                      paddle.rect.left/float(WIDTH),
-                     paddle.rect.right/float(WIDTH),
                      ball.x/float(WIDTH),
                      ball.y/float(HEIGHT),
                      ball.speedx/float(5),
                      ball.speedy/float(5),
-                     len(blocks.blocks)])
+                     len(blocks.blocks)/float(48)])
 
             # Agent selects the action
 
@@ -230,10 +229,9 @@ def main(args):
             # action = random.choice([-5, 5])
 
             ## REINFORCE ACTION SELECTION
-            actions = [-5, 5]
+            actions = [-10, 10]
             action_temp = select_action(state)
             action = actions[np.argmax(action_temp)]
-            # action = random.choice(actions)
 
             # Use the action to progress the env
             # Move the paddle according to the action selected
@@ -261,8 +259,8 @@ def main(args):
             policy.rewards.append(reward)
 
             if args.verbose:
-                print('t: {}, s: {}, a: {}, r: {}'.format(
-                    t, state.numpy(), action, reward))
+                print('t: {}, a: {}, r: {}'.format(
+                    t, action, reward))
 
             # sleep if necessary
             if args.step_delay:
@@ -271,20 +269,16 @@ def main(args):
             # Increment the step counter
             t += 1
 
+        num_blocks_crushed = 48 - len(blocks.blocks)
         episode_returns.append(np.sum(policy.rewards))
         episode_timesteps.append(t)
         # calculate the policy loss, update the model
         # clear saved rewards and log probs
         policy_loss = finish_episode()
         if ep % args.log_interval == 0:
-            print('ep: {}, t: {}, L: {}, R: {:.2f}, R_av_5: {:.2f}'.format(
-                ep, t, round(policy_loss.data[0], 2),
+            print('ep: {}, b: {}, t: {}, L: {}, R: {:.2f}, R_av_5: {:.2f}'.format(
+                ep, num_blocks_crushed, t, round(policy_loss.data[0], 2),
                 episode_returns[-1], np.mean(episode_returns[-5:])))
-
-    # print('Ep returns: {}'.format(episode_returns))
-    # print('Mean episode return: {}'.format(np.mean(episode_returns)))
-    # print('Ep time steps: {}'.format(episode_timesteps))
-    # print('Mean episode time steps: {}'.format(np.mean(episode_timesteps)))
 
 
 if __name__ == '__main__':
@@ -292,7 +286,7 @@ if __name__ == '__main__':
         description = 'Arguments for Simple Breakout')
     parser.add_argument('--log_interval', type=int, default=10, metavar='N',
                         help='interval between status logs (default: 10)')
-    parser.add_argument('--max_episodes', type=int, default=1,
+    parser.add_argument('--max_episodes', type=int, default=10,
                         help='maximum number of episodes to run')
     parser.add_argument('--verbose', action='store_true', 
         help='output verbose logging for steps')
@@ -303,7 +297,7 @@ if __name__ == '__main__':
                         default=0)
     parser.add_argument('--env_max_steps',
                         help='Max steps each episode', default=1000)
-    parser.add_argument('--gamma', type=float, default=0.97, metavar='G',
+    parser.add_argument('--gamma', type=float, default=0.998, metavar='G',
                         help='discount factor (default: 0.99)')
     parser.add_argument('--seed', type=int, default=1017, metavar='N',
                         help='random seed (default: 1017)')
