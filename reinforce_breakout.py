@@ -34,6 +34,7 @@ class Normalizer():
         obs_std = torch.sqrt(self.var)
         return (inputs - self.mean)/obs_std
 
+
 class Policy(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
         super(Policy, self).__init__()
