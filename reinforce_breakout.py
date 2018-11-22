@@ -27,13 +27,12 @@ class Normalizer():
         self.n += 1.
         last_mean = self.mean.clone()
         self.mean += (x-self.mean)/self.n
-        self.mean_diff += (x-last_mean)*(x-self.mean)
+        self.mean_diff += (x - last_mean)*(x - self.mean)
         self.var = torch.clamp(self.mean_diff/self.n, min=1e-2)
 
     def normalize(self, inputs):
         obs_std = torch.sqrt(self.var)
         return (inputs - self.mean)/obs_std
-
 
 class Policy(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
@@ -50,19 +49,7 @@ class Policy(nn.Module):
         action_scores = F.softmax(x, dim=0)
         return action_scores
 
-hidden_size = 32
-learning_rate = 1e-2
-input_size = 30
-output_size = 2
-policy = Policy(input_size=input_size,
-                hidden_size=hidden_size,
-                output_size=output_size)
-optimizer = optim.Adam(policy.parameters(), lr=learning_rate)
-eps = np.finfo(np.float32).eps.item()
-normalizer = Normalizer(input_size=input_size)
-
-
-def select_action(state):
+def select_action(policy, state):
     probs = policy(Variable(state))
     m = Categorical(probs)
     selected_action = m.sample()
@@ -72,7 +59,7 @@ def select_action(state):
     policy.saved_log_probs.append(log_prob)
     return action
 
-def finish_episode():
+def finish_episode(policy, optimizer):
     R = 0
     policy_loss = []
     rewards = []
@@ -80,6 +67,7 @@ def finish_episode():
         R = r + args.gamma * R
         rewards.insert(0, R)
     rewards = torch.Tensor(rewards)
+    eps = np.finfo(np.float32).eps.item()
     rewards = (rewards - rewards.mean()) / (rewards.std() + eps)
     for log_prob, reward in zip(policy.saved_log_probs, rewards):
         policy_loss.append(-log_prob * reward)
@@ -91,11 +79,7 @@ def finish_episode():
     del policy.saved_log_probs[:]
     return policy_loss
 
-
 ### ENV #####
-HEIGHT = 300
-WIDTH = 400
-
 class Rect:
     def __init__(self, left, top, width, height):
         self.left = left
@@ -123,7 +107,8 @@ class Rect:
 class Blocks:
     """Implements blocks as a collection  instead of
         as individual block objects """
-    def __init__(self):
+    def __init__(self, args):
+        self.args = args
         self.width = 100
         self.height = 20
         self.blocks = self.make_blocks()
@@ -133,9 +118,9 @@ class Blocks:
     def make_blocks(self):
         rects = []
         rows = 5
-        rows_height = HEIGHT//rows
+        rows_height = self.args.env_height//rows
         for i in range(0, rows_height, self.height):
-            for j in range(0, WIDTH, self.width):
+            for j in range(0, self.args.env_width, self.width):
                 rects.append(Rect(j, i, self.width, self.height))
         return rects
 
@@ -160,16 +145,18 @@ class Blocks:
         return block_locs
 
 class Paddle:
-    def __init__(self):
-        self.width = WIDTH // 2
+    def __init__(self, args):
+        self.args = args
+        self.width = self.args.env_width // 2
         self.height = 20
-        self.initial_x = (WIDTH//2) - (self.width//2)
-        self.initial_y = HEIGHT - 50
-        self.rect = Rect(self.initial_x, self.initial_y, 
+        self.initial_x = (self.args.env_width//2) - (self.width//2)
+        self.initial_y = self.args.env_height - 50
+        self.rect = Rect(self.initial_x, self.initial_y,
                          self.width, self.height)
 
     def move(self, speed):
-        if self.rect.right + speed > WIDTH or self.rect.left + speed < 0:
+        if ((self.rect.right + speed > self.args.env_width) or
+            (self.rect.left + speed < 0)):
             # out of bounds, do not update the paddle position
             # print('paddle collide with side of screen')
             return
@@ -181,17 +168,17 @@ class Ball:
     """Ball object that takes initial speed in x direction (speedx)
         and initial speed in y direction(speedy)"""
     def __init__(self, args, speedx, speedy):
+        self.args = args
         self.radius = 10
-        self.x = WIDTH//2
-        self.y = HEIGHT - 70
+        self.x = self.args.env_width//2
+        self.y = self.args.env_height - 70
         self.speed_magnitude = 5
         self.speedx = speedx
         self.speedy = speedy
-        self.args = args
 
     def move(self):
         # check for collision with the right side of the game screen
-        if self.x + self.radius + self.speedx >= WIDTH:
+        if self.x + self.radius + self.speedx >= self.args.env_width:
             if args.verbose:
                 print('ball collide with right side of screen')
             self.speedx = -self.speed_magnitude
@@ -203,7 +190,7 @@ class Ball:
             self.speedx = self.speed_magnitude
 
         # check for collision with the bottom of the game screen
-        if self.y + self.radius + self.speedy >= HEIGHT:
+        if self.y + self.radius + self.speedy >= self.args.env_height:
             if args.verbose:
                 print('ball collide with bottom of screen')
             self.speedy = -self.speed_magnitude
@@ -235,13 +222,28 @@ class Ball:
 
 
 def main(args):
+    # Define the env parameters.
+    args.env_width = 300
+    args.env_height = 400
+
+    # Define the agent parameters and build the agent.
+    hidden_size = 32
+    learning_rate = 1e-2
+    input_size = 30
+    output_size = 2
+    policy = Policy(input_size=input_size,
+                    hidden_size=hidden_size,
+                    output_size=output_size)
+    optimizer = optim.Adam(policy.parameters(), lr=learning_rate)
+    normalizer = Normalizer(input_size=input_size)
+
     episode_returns = []
     episode_timesteps = []
 
     for ep in range(args.max_episodes):
         # make the game, env.reset()
-        paddle = Paddle()
-        blocks = Blocks()
+        paddle = Paddle(args)
+        blocks = Blocks(args)
 
         # Initialize a moving ball
         # ball = Ball(args, random.choice([-5, 5]), random.choice([-5, 5]))
@@ -291,7 +293,7 @@ def main(args):
             # Agent selects the action
             ## REINFORCE ACTION SELECTION
             actions = [-5, 5]
-            action_temp = select_action(state)
+            action_temp = select_action(policy, state)
             action = actions[np.argmax(action_temp)]
 
             if args.random_action:
@@ -340,7 +342,7 @@ def main(args):
 
         # calculate the policy loss, update the model
         # clear saved rewards and log probs
-        policy_loss_temp = finish_episode()
+        policy_loss_temp = finish_episode(policy, optimizer)
         policy_loss = policy_loss_temp.data[0]
         # policy_loss = 0
 
@@ -362,7 +364,7 @@ if __name__ == '__main__':
     parser.add_argument('--random_action', action='store_true',
         help='Random policy for comparison')
     parser.add_argument('--env_max_steps',
-                        help='Max steps each episode', default=500)
+                        help='Max steps each episode', default=1000)
     parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
                         help='discount factor (default: 0.99)')
     parser.add_argument('--seed', type=int, metavar='N',
