@@ -229,6 +229,7 @@ def main(args):
 
     hidden_size = 32
     learning_rate = 1e-2
+    # TODO(korymath): clean up how the state space is calculated
     input_size = 6 + len(blocks_temp.block_locations())
     output_size = 2
     policy = Policy(input_size=input_size,
