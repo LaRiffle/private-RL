@@ -223,9 +223,13 @@ class Ball:
 
 def main(args):
     # Define the agent parameters and build the agent.
+
+    # TODO(korymath): get the number of blocks for the input size
+    blocks_temp = Blocks(args)
+
     hidden_size = 32
     learning_rate = 1e-2
-    input_size = 30
+    input_size = 6 + len(blocks_temp.block_locations())
     output_size = 2
     policy = Policy(input_size=input_size,
                     hidden_size=hidden_size,
@@ -242,8 +246,10 @@ def main(args):
         blocks = Blocks(args)
 
         # Initialize a moving ball
-        # ball = Ball(args, random.choice([-5, 5]), random.choice([-5, 5]))
-        ball = Ball(args, 5, 5)
+        if args.random_ball_start_vel:
+            ball = Ball(args, random.choice([-5, 5]), random.choice([-5, 5]))
+        else:
+            ball = Ball(args, 5, 5)
 
         # start a timer for time checking
         last_time = time.time()
@@ -284,7 +290,6 @@ def main(args):
             if True:
                 normalizer.observe(state)
                 state = normalizer.normalize(state)
-
 
             # Agent selects the action
             ## REINFORCE ACTION SELECTION
@@ -359,10 +364,12 @@ if __name__ == '__main__':
                         help='output verbose logging for steps')
     parser.add_argument('--random_action', action='store_true',
                         help='Random policy for comparison')
+    parser.add_argument('--random_ball_start_vel', action='store_true',
+                        help='Random ball starting velocity.')
     parser.add_argument('--env_width',
-                        help='Environment width.', default=300)
+                        help='Environment width.', default=300, type=int)
     parser.add_argument('--env_height',
-                        help='Environment height.', default=400)
+                        help='Environment height.', default=400, type=int)
     parser.add_argument('--env_max_steps',
                         help='Max steps each episode', default=1000)
     parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
