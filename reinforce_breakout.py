@@ -222,10 +222,6 @@ class Ball:
 
 
 def main(args):
-    # Define the env parameters.
-    args.env_width = 300
-    args.env_height = 400
-
     # Define the agent parameters and build the agent.
     hidden_size = 32
     learning_rate = 1e-2
@@ -360,9 +356,13 @@ if __name__ == '__main__':
     parser.add_argument('--max_episodes', type=int, default=500,
                         help='maximum number of episodes to run')
     parser.add_argument('--verbose', action='store_true',
-        help='output verbose logging for steps')
+                        help='output verbose logging for steps')
     parser.add_argument('--random_action', action='store_true',
-        help='Random policy for comparison')
+                        help='Random policy for comparison')
+    parser.add_argument('--env_width',
+                        help='Environment width.', default=300)
+    parser.add_argument('--env_height',
+                        help='Environment height.', default=400)
     parser.add_argument('--env_max_steps',
                         help='Max steps each episode', default=1000)
     parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
