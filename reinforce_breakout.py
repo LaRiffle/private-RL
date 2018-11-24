@@ -246,8 +246,10 @@ def main(args):
         # make the game, env.reset()
         paddle = Paddle(args)
         blocks = Blocks(args)
-        print("locs", blocks.block_locations())
-        print("blocks", blocks.blocks)
+
+        if args.verbose:
+            print("locs", blocks.block_locations())
+            print("blocks", blocks.blocks)
 
         # Initialize a moving ball
         if args.random_ball_start_vel:
