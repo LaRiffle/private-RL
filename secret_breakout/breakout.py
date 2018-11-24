@@ -80,7 +80,7 @@ class Paddle(Rect):
             # out of bounds, do not update the paddle position
             # print('paddle collide with side of screen')
             # TODO[jason] handle reward corruption
-            return
+            return True
         else:
             # update the paddle position
             super().move(speed)
@@ -101,26 +101,26 @@ class Ball(object):
     def move(self):
         # check for collision with the right side of the game screen
         if self.x + self.radius + self.speedx >= self.args.env_width:
-            if args.verbose:
+            if self.args.verbose:
                 print('ball collide with right side of screen')
             self.speedx = -self.speed_magnitude
 
         # check for collision with the left hand side of the game screen
         elif self.x + self.speedx <= 0:
-            if args.verbose:
+            if self.args.verbose:
                 print('ball collide with left side of screen')
             self.speedx = self.speed_magnitude
 
         # check for collision with the bottom of the game screen
         if self.y + self.radius + self.speedy >= self.args.env_height:
-            if args.verbose:
+            if self.args.verbose:
                 print('ball collide with bottom of screen')
             self.speedy = -self.speed_magnitude
             return True
 
         # check for collision with the top of the game screen
         elif self.y + self.radius + self.speedy <= 0:
-            if args.verbose:
+            if self.args.verbose:
                 print('ball collide with top of screen')
             self.speedy = self.speed_magnitude
 
@@ -135,7 +135,7 @@ class Ball(object):
         if ((rect.left <= self.x + self.radius) and
             (self.x - self.radius <= rect.right)):
             if rect.top < self.y + self.radius < rect.bottom:
-                if args.verbose:
+                if self.args.verbose:
                     print('ball collide with {}'.format(collider))
                 self.speedy = -self.speedy
                 # add an extra displacement to avoid double collision

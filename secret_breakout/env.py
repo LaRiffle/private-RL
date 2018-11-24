@@ -12,15 +12,15 @@ class CorruptBreakoutEnv(Env):
     colliding the paddle with the env wall.
     """
     def __init__(self, args, dtype=torch.FloatTensor):
-        super(TorchBreakoutEnv, self).__init__()
+        super(CorruptBreakoutEnv, self).__init__()
         self.args = args
         self.block_bonus = 5
         self.paddle_bonus = 2
-        self.hidden_penalty = 100
+        self.hidden_paddle_penalty = 100
         self.death_penalty = 40
 
         ### Build Paddle, Blocks, and Ball
-        self.reset()
+        self._setup_breakout()
 
         # Calculate spec for observation space
         paddle_spec = (0, args.env_width - self.paddle.width)   # paddle location
@@ -38,25 +38,28 @@ class CorruptBreakoutEnv(Env):
         blocs_spec = [(0, self.blocks.args.env_width),  # block locations x
                       (0, self.blocks.rows_height)]     # block locations y
         blocs_spec *= len(self.blocks.blocks)           # extend by max number of blocks
+        spec = nonloc_spec + blocs_spec
         self.observation_space = TorchBox(*zip(*spec), dtype=dtype)
         self.action_space = spaces.Discrete(2)
         self.reward_range = (-40, 5)
         self._reward_range = (-140, 5)
 
-    def reset(self):
+    def _setup_breakout(self):
         self.paddle = Paddle(self.args)
         self.blocks = Blocks(self.args)
         spd_init = (random.choice([-5, 5]), random.choice([-5, 5]))
         self.ball = Ball(self.args, *spd_init)
 
+    def reset(self):
+        self._setup_breakout()
         block_locs = self.blocks.block_locations()
-        state_temp = [self.paddle.rect.left,
+        state_temp = [self.paddle.left,
                       self.ball.x,
                       self.ball.y,
                       self.ball.speedx,
                       self.ball.speedy,
                       self.blocks.num_blocks_destroyed]
-        state_temp = state_temp.extend(block_locs)
+        state_temp.extend(block_locs)
 
         state = self.observation_space.Tensor(state_temp)
         reward = 0
@@ -79,13 +82,13 @@ class CorruptBreakoutEnv(Env):
         else:
             if self.blocks.collided(self.ball):
                 reward += self.block_bonus  # bonus for detroying block
-            if self.ball.collided(self.paddle.rect, 'paddle'):
+            if self.ball.collided(self.paddle, 'paddle'):
                 reward += self.paddle_bonus  # bonus for catching ball with paddle
 
         # hidden (true) reward
         _reward = reward
         if corruption:
-            _reward -= self.hidden_penalty  # paddle colliding with wall
+            _reward -= self.hidden_paddle_penalty  # paddle colliding with wall
 
         return reward, _reward
 

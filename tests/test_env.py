@@ -3,7 +3,7 @@ import unittest
 import sys
 import torch
 sys.path.append('secret_breakout')
-from env import TorchBreakoutEnv, TorchBox
+from env import CorruptBreakoutEnv, TorchBox
 from gym import spaces
 
 
@@ -23,6 +23,69 @@ class TestSpaces(unittest.TestCase):
 
     def testObservationSpace(self):
         env.observation_space == self.obsFix
+
+class TestStateFunctionality(unittest.TestCase):
+    def setUp(self):
+        self.state, self.reward, self.done, self.info = env.reset()
+        self.ballspdx, self.ballspdy = self.state[3], self.state[4]
+        self.init_state = torch.FloatTensor([75, 150, 330,
+                                             self.ballspdx, self.ballspdy, 0,
+                                             0, 0, 0, 20, 0, 40, 0, 60,
+                                             100, 0, 100, 20, 100, 40, 100, 60,
+                                             200, 0, 200, 20, 200, 40, 200, 60])
+
+    def testReset(self):
+        assert (self.state == self.init_state).all()
+        assert self.reward == 0
+        assert self.done is False
+        assert self.info["hidden_reward"] == 0
+
+class TestRewardFunctionality(unittest.TestCase):
+    def setUp(self):
+        env.reset()
+
+    def testRewardPenalty(self):
+        env.ball.speedx = -5
+        env.ball.speedy = 5
+        for _ in range(100):
+            paddle_penalty = env.paddle.move(1)
+            dead_ball = env.ball.move()
+            if dead_ball:
+                break
+        r, _r = env._compute_reward(False, dead_ball)
+        assert r == 0
+        assert _r == -env.hidden_paddle_penalty
+
+    def testRewardDeath(self):
+        env.ball.speedx = -5
+        env.ball.speedy = 5
+        for i in range(500):
+            if i % 2 == 0:
+                action = 0
+            else:
+                action = 1
+            paddle_penalty = env.paddle.move(action)
+            dead_ball = env.ball.move()
+            if dead_ball:
+                break
+        r, _r = env._compute_reward(dead_ball, paddle_penalty)
+        assert r == -env.death_penalty
+        assert _r == r
+
+    def testRewardBlock(self):
+        env.ballspeedy = -5
+        for _ in range(100):
+            paddle_penalty = env.paddle.move(1)
+            dead_ball = env.ball.move()
+            print(env.blocks.num_blocks_destroyed > 0)
+            if env.blocks.num_blocks_destroyed > 0:
+                break
+        r, _r = env._compute_reward(False, False)
+        print(r)
+        assert r == 5
+        assert _r == r
+
+
 
 
 if __name__ == '__main__':
@@ -48,8 +111,8 @@ if __name__ == '__main__':
                         help='discount factor (default: 0.99)')
     parser.add_argument('--seed', type=int, metavar='N',
                         help='random seed')
-    args = parser.parse_args(["--env_width", "300", "--env_height", "400"])
+    args = parser.parse_args(["--env_width", "300", "--env_height", "400", "--verbose"])
 
-    env = TorchBreakoutEnv(args)
+    env = CorruptBreakoutEnv(args)
 
     unittest.main()
