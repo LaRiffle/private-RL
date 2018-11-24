@@ -56,7 +56,7 @@ class CorruptBreakoutEnv(Env):
                       self.ball.speedx,
                       self.ball.speedy,
                       self.blocks.num_blocks_destroyed]
-        state_temp = extend(block_locs)
+        state_temp = state_temp.extend(block_locs)
 
         state = self.observation_space.Tensor(state_temp)
         reward = 0
