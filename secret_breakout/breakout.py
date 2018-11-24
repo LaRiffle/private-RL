@@ -116,7 +116,7 @@ class Ball(object):
             if args.verbose:
                 print('ball collide with bottom of screen')
             self.speedy = -self.speed_magnitude
-            return False
+            return True
 
         # check for collision with the top of the game screen
         elif self.y + self.radius + self.speedy <= 0:
@@ -127,7 +127,7 @@ class Ball(object):
         # update the ball position
         self.x += self.speedx
         self.y += self.speedy
-        return True
+        return False
 
     # checks if ball has collided with the rect
     # which may be rect of block or paddle

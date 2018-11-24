@@ -160,7 +160,7 @@ class Paddle:
             (self.rect.left + speed < 0)):
             # out of bounds, do not update the paddle position
             # print('paddle collide with side of screen')
-            return
+            return True
         else:
             # update the paddel position
             self.rect = self.rect.move(speed)
