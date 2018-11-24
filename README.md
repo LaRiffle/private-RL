@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/korymath/secret-breakout.svg?style=svg&circle-token=401570b69e540225deb1f315e4b83f04924d3582)](https://circleci.com/gh/korymath/secret-breakout)
+
 # Secret Breakout
 
 This is a simplified version of breakout made specifically for secret agents learning in secret environments.
