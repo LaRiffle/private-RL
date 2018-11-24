@@ -71,7 +71,7 @@ class CorruptBreakoutEnv(Env):
         # TODO[jason] finish
 
 
-    def _compute_reward(self, death, penalty):
+    def _compute_reward(self, death, corruption):
         # observed (potentially corrupt) reward
         reward = 0
         if death:
@@ -84,7 +84,7 @@ class CorruptBreakoutEnv(Env):
 
         # hidden (true) reward
         _reward = reward
-        if penalty:
+        if corruption:
             _reward -= self.hidden_penalty  # paddle colliding with wall
 
         return reward, _reward
