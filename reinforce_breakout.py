@@ -111,14 +111,15 @@ class Blocks:
         self.args = args
         self.width = 100
         self.height = 20
+        self.rows = 5
         self.blocks = self.make_blocks()
         self.num_blocks_start = len(self.blocks)
         self.num_blocks_destroyed = 0
 
     def make_blocks(self):
         rects = []
-        rows = 5
-        rows_height = self.args.env_height//rows
+        # TODO[jason] double check location logic with kory
+        rows_height = self.args.env_height//self.rows
         for i in range(0, rows_height, self.height):
             for j in range(0, self.args.env_width, self.width):
                 rects.append(Rect(j, i, self.width, self.height))
@@ -159,7 +160,7 @@ class Paddle:
             (self.rect.left + speed < 0)):
             # out of bounds, do not update the paddle position
             # print('paddle collide with side of screen')
-            return
+            return True
         else:
             # update the paddel position
             self.rect = self.rect.move(speed)
@@ -245,6 +246,8 @@ def main(args):
         # make the game, env.reset()
         paddle = Paddle(args)
         blocks = Blocks(args)
+        print("locs", blocks.block_locations())
+        print("blocks", blocks.blocks)
 
         # Initialize a moving ball
         if args.random_ball_start_vel:

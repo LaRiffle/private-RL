@@ -39,6 +39,8 @@ class Blocks:
         for i in range(0, rows_height, self.height):
             for j in range(0, WIDTH, self.width):
                 rects.append(pygame.Rect(j, i, self.width, self.height))
+        print('rects', rects)
+        print('len', len(rects))
         return rects
 
     def draw_blocks(self):
@@ -62,9 +64,10 @@ class Paddle:
         self.width = WIDTH // 4
         self.height = 10
         self.initial_x = (WIDTH//2) - (self.width//2)
-        self.initial_y = HEIGHT - 50 
+        self.initial_y = HEIGHT - 50
         self.rect = pygame.Rect(self.initial_x, self.initial_y,
                                 self.width, self.height)
+        print(self.rect)
 
     def move(self, speed):
         if self.rect.right + speed > WIDTH or self.rect.left + speed < 0:
@@ -108,7 +111,7 @@ class Ball:
     def collided(self, rect):
         if rect.left <= self.x + self.radius and\
                 self.x - self.radius <= rect.right:
-            if rect.top < self.y + self.radius < rect.bottom: 
+            if rect.top < self.y + self.radius < rect.bottom:
                 self.speedy = -self.speedy
                 return True
         else:
