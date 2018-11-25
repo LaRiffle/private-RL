@@ -6,6 +6,8 @@ This is a simplified version of breakout made specifically for secret agents lea
 
 ## Install
 
+Requires Python 3.6.
+
 ```sh
 python3 -m venv venv
 source venv/bin/activate
