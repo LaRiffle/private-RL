@@ -14,6 +14,8 @@ class CorruptBreakoutEnv(Env):
     def __init__(self, args, dtype=torch.FloatTensor):
         super(CorruptBreakoutEnv, self).__init__()
         self.args = args
+
+        # Reward constants
         self.block_bonus = 5
         self.paddle_bonus = 2
         self.hidden_paddle_penalty = 100
@@ -55,16 +57,7 @@ class CorruptBreakoutEnv(Env):
 
     def reset(self):
         self._setup_breakout()
-        block_locs = self.blocks.block_locations()
-        state_temp = [self.paddle.left,
-                      self.ball.x,
-                      self.ball.y,
-                      self.ball.speedx,
-                      self.ball.speedy,
-                      self.blocks.num_blocks_destroyed]
-        state_temp.extend(block_locs)
 
-        state = self.observation_space.Tensor(state_temp)
         reward = 0
         done = False
         info = {'hidden_reward': 0}
@@ -74,9 +67,14 @@ class CorruptBreakoutEnv(Env):
         paddle_penalty = self.paddle.move(action)
         dead_ball = self.ball.move()
         reward, _reward = self._compute_reward(dead_ball, paddle_penalty)
-        # TODO[jason] finish
+        successor, done = self._build_obs()
+        return successor, reward, done, {"hidden_reward": _reward}
 
     def _compute_reward(self, death, corruption):
+        # episode ends
+        if len(self.blocks.blocks) <= 0:
+            return 0, 0
+
         # observed (potentially corrupt) reward
         reward = 0
         if death:
@@ -93,6 +91,26 @@ class CorruptBreakoutEnv(Env):
             _reward -= self.hidden_paddle_penalty  # paddle colliding with wall
 
         return reward, _reward
+
+    def _build_obs(self):
+        block_locs = self.blocks.block_locations()
+        state_temp = [self.paddle.left,
+                      self.ball.x,
+                      self.ball.y,
+                      self.ball.speedx,
+                      self.ball.speedy,
+                      self.blocks.num_blocks_destroyed]
+        state_temp.extend(block_locs)
+
+        state = self.observation_space.Tensor(state_temp)
+
+        # episode stopping condition
+        if len(self.blocks.blocks) <= 0:
+            done = True
+        else:
+            done = False
+
+        return state, done
 
     def seed(self, seed):
         random.seed(seed)
