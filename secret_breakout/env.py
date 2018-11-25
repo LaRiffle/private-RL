@@ -22,6 +22,9 @@ class CorruptBreakoutEnv(Env):
         ### Build Paddle, Blocks, and Ball
         self._setup_breakout()
 
+        ### Seed
+        self.seed(args.seed)
+
         # Calculate spec for observation space
         paddle_spec = (0, args.env_width - self.paddle.width)   # paddle location
         ballx_spec = (0, args.env_width)                        # ball location x
@@ -73,7 +76,6 @@ class CorruptBreakoutEnv(Env):
         reward, _reward = self._compute_reward(dead_ball, paddle_penalty)
         # TODO[jason] finish
 
-
     def _compute_reward(self, death, corruption):
         # observed (potentially corrupt) reward
         reward = 0
@@ -91,6 +93,9 @@ class CorruptBreakoutEnv(Env):
             _reward -= self.hidden_paddle_penalty  # paddle colliding with wall
 
         return reward, _reward
+
+    def seed(self, seed):
+        random.seed(seed)
 
 
 class TorchBox(Space):
