@@ -19,11 +19,11 @@ class CorruptBreakoutEnv(Env):
         self.hidden_paddle_penalty = 100
         self.death_penalty = 40
 
-        ### Build Paddle, Blocks, and Ball
-        self._setup_breakout()
-
         ### Seed
         self.seed(args.seed)
+
+        ### Build Paddle, Blocks, and Ball
+        self._setup_breakout()
 
         # Calculate spec for observation space
         paddle_spec = (0, args.env_width - self.paddle.width)   # paddle location
