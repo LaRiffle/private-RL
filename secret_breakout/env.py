@@ -44,6 +44,7 @@ class CorruptBreakoutEnv(Env):
                       (0, self.blocks.rows_height)]     # block locations y
         blocs_spec *= len(self.blocks.blocks)           # extend by max number of blocks
         spec = nonloc_spec + blocs_spec
+
         self.observation_space = TorchBox(*zip(*spec), dtype=dtype)
         self.action_space = spaces.Discrete(2)
         self.reward_range = (-40, 5)
@@ -153,6 +154,7 @@ class TorchBox(Space):
             assert np.isscalar(low) and np.isscalar(high)
             low = low + torch.zeros(shape)
             high = high + torch.zeros(shape)
+
         self.low = low.type(Tensor)
         self.high = high.type(Tensor)
         self.shape = shape
