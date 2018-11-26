@@ -42,9 +42,6 @@ class TestStateFunc(unittest.TestCase):
 
     def testReset(self):
         assert (self.state == self.init_state).all()
-        assert self.reward == 0
-        assert self.done is False
-        assert self.info["hidden_reward"] == 0
 
 
 class TestRewardFunc(unittest.TestCase):
