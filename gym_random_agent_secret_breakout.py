@@ -35,7 +35,7 @@ if __name__ == '__main__':
     done = False
     reward = 0
 
-    for i in tqdm(range(episode_count)):
+    for i in range(episode_count):
         ob = env.reset()
         while True:
             action = agent.act(ob, reward, done)
