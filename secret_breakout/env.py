@@ -57,9 +57,9 @@ class CorruptBreakoutEnv(Env):
 
     def reset(self):
         self._setup_breakout()
+        state, done = self._build_obs()
 
         reward = 0
-        done = False
         info = {'hidden_reward': 0}
         return state, reward, done, info
 

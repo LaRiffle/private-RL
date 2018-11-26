@@ -10,6 +10,8 @@ from gym import spaces
 
 class TestSpaces(unittest.TestCase):
     def setUp(self):
+        stargs_filename = "./tests/fixtures/env_args.yaml"
+        self.env = _build_env_from_file(stargs_filename)
         highs = (150, 300, 400, 5, 5, 12,
                  300, 80, 300, 80, 300, 80,
                  300, 80, 300, 80, 300, 80,
@@ -20,10 +22,10 @@ class TestSpaces(unittest.TestCase):
         self.actFix = spaces.Discrete(2)
 
     def testActionSpace(self):
-        env.action_space == self.actFix
+        self.env.action_space == self.actFix
 
     def testObservationSpace(self):
-        env.observation_space == self.obsFix
+        self.env.observation_space == self.obsFix
 
 
 class TestStateFunc(unittest.TestCase):
