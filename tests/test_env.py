@@ -32,7 +32,7 @@ class TestStateFunc(unittest.TestCase):
     def setUp(self):
         stargs_filename = "./tests/fixtures/env_args.yaml"
         self.env = _build_env_from_file(stargs_filename)
-        self.state, self.reward, self.done, self.info = self.env.reset()
+        self.state = self.env.reset()
         self.ballspdx, self.ballspdy = self.state[3], self.state[4]
         self.init_state = torch.FloatTensor([75, 150, 330,
                                              self.ballspdx, self.ballspdy, 0,
