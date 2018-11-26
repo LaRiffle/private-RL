@@ -57,11 +57,8 @@ class CorruptBreakoutEnv(Env):
 
     def reset(self):
         self._setup_breakout()
-        state, done = self._build_obs()
-
-        reward = 0
-        info = {'hidden_reward': 0}
-        return state, reward, done, info
+        state, _ = self._build_obs()
+        return state
 
     def step(self, action):
         paddle_penalty = self.paddle.move(action)
