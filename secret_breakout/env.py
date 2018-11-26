@@ -112,6 +112,12 @@ class CorruptBreakoutEnv(Env):
     def seed(self, seed):
         random.seed(seed)
 
+    def render(self):
+        raise NotImplementedError
+
+    def close(self):
+        raise NotImplementedError
+
 
 class TorchBox(Space):
     """
