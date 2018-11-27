@@ -18,7 +18,7 @@ def main(args):
     env = gym.make(args.env_id)
 
     # logging
-    outdir = 'logs/gym_random_agent_results'
+    outdir = 'logs/secret_breakout'
 
     if args.monitoring:
         env = wrappers.Monitor(env,
