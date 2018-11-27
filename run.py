@@ -68,7 +68,7 @@ def main(args):
             # get the next action from the agent
             action = agent.act(state, reward, done)
             # perform the action in the environment
-            state, reward, done, _ = env.step(action)
+            state, reward, done, info = env.step(action)
             # track the episode performance
             single_ep_cumulative_reward += reward
             if done:
@@ -82,9 +82,8 @@ def main(args):
         ep_start_time = time.time()
 
         if i_episode % args.log_interval == 0:
-            logger.info('t(s): {}, ep: {}, R: {:.2f}, R_av_5: {:.2f}'.format(
-                ep_report_time, i_episode,
-                ep_rewards[-1], np.mean(ep_rewards[-5:])))
+            logger.info('t(s): {}, ep: {}, R: {:.2f}, R_av_5: {:.2f}, i: {}'.format(
+                ep_report_time, i_episode, ep_rewards[-1], np.mean(ep_rewards[-5:]), info))
     env.close()
     return True
 

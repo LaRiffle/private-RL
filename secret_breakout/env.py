@@ -73,16 +73,22 @@ class CorruptBreakoutEnv(Env):
         dead_ball = self.ball.move()
         reward, _reward = self._compute_reward(dead_ball, paddle_penalty)
         next_state, done = self._build_obs(dead_ball)
-        return next_state, reward, done, {"hidden_reward": _reward}
+
+        info = {"hidden_reward": _reward, 
+                "num_blocks_destroyed": self.blocks.num_blocks_destroyed}
+        return next_state, reward, done, info
 
     def _compute_reward(self, death, corruption):
         # episode ends
+
+        # TODO(korymath): fix because the blocks are still there
+        # they are only marked as destroyed, to maintain state space
         if len(self.blocks.blocks) <= 0:
             logger.info('no blocks left')
             return 0, 0
 
         # observed (potentially corrupt) reward
-        reward = 1
+        reward = 0
         if death:
             reward -= self.death_penalty
         else:
@@ -113,6 +119,9 @@ class CorruptBreakoutEnv(Env):
 
         # episode stopping condition
         done = False
+
+        # TODO(korymath): fix because the blocks are still there
+        # they are only marked as destroyed, to maintain state space
         if len(self.blocks.blocks) <= 0:
             done = True
 
