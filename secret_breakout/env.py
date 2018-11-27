@@ -19,7 +19,7 @@ class CorruptBreakoutEnv(Env):
         self.block_bonus = 5
         self.paddle_bonus = 2
         self.hidden_paddle_penalty = 100
-        self.death_penalty = 100
+        self.death_penalty = 40
 
         ### Seed
         self.seed(args.seed)

@@ -66,6 +66,8 @@ class ReinforceAgent(nn.Module):
             self._update_policy()
 
         # Normalize the state
+        if type(state) == np.ndarray:
+            state = torch.from_numpy(state).float()
         self.normalizer.observe(state)
         state = self.normalizer.normalize(state)
         action_temp = self._select_action(state)
@@ -73,6 +75,8 @@ class ReinforceAgent(nn.Module):
 
     def _select_action(self, state):
         """Select the action based on the current policy."""
+        if type(state) == np.ndarray:
+            state = torch.from_numpy(state).float()
         probs = self.forward(Variable(state))
         m = Categorical(probs)
         selected_action = m.sample()
