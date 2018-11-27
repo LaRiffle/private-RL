@@ -69,7 +69,7 @@ class Paddle(Rect):
     def __init__(self, args):
         self.args = args
         # TODO(korymath): what is the correct size for the paddle
-        self.width = self.args.env_width // 3
+        self.width = self.args.env_width // 
         self.height = 20
         self.initial_x = (self.args.env_width // 2) - (self.width // 2)
         self.initial_y = self.args.env_height - 50
