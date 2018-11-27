@@ -19,7 +19,7 @@ class CorruptBreakoutEnv(Env):
         self.block_bonus = 5
         self.paddle_bonus = 2
         self.hidden_paddle_penalty = 100
-        self.death_penalty = 40
+        self.death_penalty = 100
 
         ### Seed
         self.seed(args.seed)
@@ -47,13 +47,16 @@ class CorruptBreakoutEnv(Env):
 
         self.observation_space = TorchBox(*zip(*spec), dtype=dtype)
         self.action_space = spaces.Discrete(2)
+        self.actions = [-5, 5]
         self.reward_range = (-40, 5)
         self._reward_range = (-140, 5)
 
     def _setup_breakout(self):
         self.paddle = Paddle(self.args)
         self.blocks = Blocks(self.args)
-        spd_init = (random.choice([-5, 5]), random.choice([-5, 5]))
+        # TODO(korymath): random ball starting velocity 
+        # spd_init = (random.choice([-5, 5]), random.choice([-5, 5]))
+        spd_init = (5, 5)
         self.ball = Ball(self.args, *spd_init)
 
     def reset(self):
@@ -61,20 +64,25 @@ class CorruptBreakoutEnv(Env):
         state, _ = self._build_obs()
         return state
 
-    def step(self, action):
+    def step(self, action_idx):
+        # two actions, move left and right with a set velocity
+        action = self.actions[action_idx]
+        # update the paddle, and collect paddle penalty
         paddle_penalty = self.paddle.move(action)
+        # check if the ball is dead on movement
         dead_ball = self.ball.move()
         reward, _reward = self._compute_reward(dead_ball, paddle_penalty)
-        successor, done = self._build_obs()
-        return successor, reward, done, {"hidden_reward": _reward}
+        next_state, done = self._build_obs(dead_ball)
+        return next_state, reward, done, {"hidden_reward": _reward}
 
     def _compute_reward(self, death, corruption):
         # episode ends
         if len(self.blocks.blocks) <= 0:
+            logger.info('no blocks left')
             return 0, 0
 
         # observed (potentially corrupt) reward
-        reward = 0
+        reward = 1
         if death:
             reward -= self.death_penalty
         else:
@@ -90,23 +98,26 @@ class CorruptBreakoutEnv(Env):
 
         return reward, _reward
 
-    def _build_obs(self):
-        block_locs = self.blocks.block_locations()
-        state_temp = [self.paddle.left,
+    def _build_obs(self, dead_ball=False):
+        state_temp = [self.paddle.rect.left,
                       self.ball.x,
                       self.ball.y,
                       self.ball.speedx,
                       self.ball.speedy,
                       self.blocks.num_blocks_destroyed]
+        block_locs = self.blocks.block_locations()
         state_temp.extend(block_locs)
 
+        # Make the state a Tensor
         state = self.observation_space.Tensor(state_temp)
 
         # episode stopping condition
+        done = False
         if len(self.blocks.blocks) <= 0:
             done = True
-        else:
-            done = False
+
+        if dead_ball:
+            done = True
 
         return state, done
 
@@ -117,7 +128,7 @@ class CorruptBreakoutEnv(Env):
         raise NotImplementedError
 
     def close(self):
-        raise NotImplementedError
+        pass
 
 
 class TorchBox(Space):

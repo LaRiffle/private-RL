@@ -44,6 +44,7 @@ class ReinforceAgent(nn.Module):
         self.affine2 = nn.Linear(hidden_size, output_size, bias=False)
         self.saved_log_probs = []
         self.rewards = []
+
         # build in an optimizer
         self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
         self.normalizer = Normalizer(input_size=input_size)
@@ -59,34 +60,29 @@ class ReinforceAgent(nn.Module):
 
     def act(self, state, reward, done):
         """Return the action, finish episode if done."""
-
         # add the reward to the accumulator
         self.rewards.append(reward)
-        # check if the episode is over
         if done:
-            self._finish_episode()
+            self._update_policy()
 
+        # Normalize the state
+        self.normalizer.observe(state)
+        state = self.normalizer.normalize(state)
         action_temp = self._select_action(state)
         return action_temp.data[0]
 
     def _select_action(self, state):
-        if type(state) == torch.FloatTensor:
-            state = Variable(state)
-        else:
-            state = Variable(torch.from_numpy(state).float())
-
-        probs = self(state)
+        """Select the action based on the current policy."""
+        probs = self.forward(Variable(state))
         m = Categorical(probs)
-        try:
-            action = m.sample()
-        except RuntimeError as error:
-            logger.debug(error)
-            logger.debug('m', m, 'probs', probs, 'state', state)
-            sys.exit(0)
-        self.saved_log_probs.append(m.log_prob(action))
+        selected_action = m.sample()
+        log_prob = m.log_prob(selected_action)
+        self.saved_log_probs.append(log_prob)
+        action = selected_action
         return action
 
-    def _finish_episode(self):
+    def _update_policy(self):
+        """When episode finishes, calculate policy loss and update model."""
         R = 0
         policy_loss = []
         rewards = []
@@ -104,4 +100,4 @@ class ReinforceAgent(nn.Module):
         self.optimizer.step()
         del self.rewards[:]
         del self.saved_log_probs[:]
-        return policy_loss
+        logger.debug('Policy loss: {}'.format(policy_loss.data[0]))

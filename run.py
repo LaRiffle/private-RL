@@ -33,6 +33,7 @@ def main(args):
     logger.debug('Action space vector length: {}'.format(env.action_space.n))
     # TODO: fix this so that it can be directly read from env.observation_space
     logger.debug('Observation space vector length: {}'.format(len(state)))
+    logger.debug('Max episode steps: {}'.format(env.spec.max_episode_steps))
 
     # Build the agent
     if args.agent_id == 'random':
@@ -75,7 +76,7 @@ def main(args):
         ep_start_time = time.time()
 
         if i_episode % args.log_interval == 0:
-            print('t(s): {}, ep: {}, R: {:.2f}, R_av_5: {:.2f}'.format(
+            logger.info('t(s): {}, ep: {}, R: {:.2f}, R_av_5: {:.2f}'.format(
                 ep_report_time, i_episode,
                 ep_rewards[-1], np.mean(ep_rewards[-5:])))
     env.close()
@@ -95,10 +96,9 @@ if __name__ == '__main__':
                         type=int, default=10, metavar='N',
                         help='interval between status logs (default: 10)')
     parser.add_argument('--max_episodes',
-                        type=int, default=500,
+                        type=int, default=1,
                         help='maximum number of episodes to run')
-    parser.add_argument('--verbose',
-                        action='store_true',
+    parser.add_argument('--verbose', action='store_true',
                         help='output verbose logging for steps')
     parser.add_argument('--monitoring',
                         action='store_true',
@@ -127,7 +127,10 @@ if __name__ == '__main__':
                         type=int, metavar='N',
                         help='random seed')
     args = parser.parse_args()
-    logger.set_level(logger.DEBUG)
+    logger.set_level(logger.INFO)
+
+    if args.verbose:
+        logger.set_level(logger.INFO)
 
     # Set the random seed if defined
     if args.seed:
