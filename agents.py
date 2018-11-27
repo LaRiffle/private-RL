@@ -16,14 +16,14 @@ class Normalizer():
         self.mean_diff = torch.zeros(input_size)
         self.var = torch.zeros(input_size)
 
-    def observe(self, x):
+    def _observe(self, x):
         self.n += 1.
         last_mean = self.mean.clone()
         self.mean += (x-self.mean)/self.n
         self.mean_diff += (x - last_mean)*(x - self.mean)
         self.var = torch.clamp(self.mean_diff / self.n, min=1e-2)
 
-    def normalize(self, inputs):
+    def _normalize(self, inputs):
         obs_std = torch.sqrt(self.var)
         return (inputs - self.mean) / obs_std
 
@@ -51,7 +51,7 @@ class ReinforceAgent(nn.Module):
         self.gamma = gamma
 
 
-    def forward(self, x):
+    def _forward(self, x):
         x = self.affine1(x)
         x = F.relu(x)
         x = self.affine2(x)
@@ -68,8 +68,8 @@ class ReinforceAgent(nn.Module):
         # Normalize the state
         if type(state) == np.ndarray:
             state = torch.from_numpy(state).float()
-        self.normalizer.observe(state)
-        state = self.normalizer.normalize(state)
+        self.normalizer._observe(state)
+        state = self.normalizer._normalize(state)
         action_temp = self._select_action(state)
         return action_temp.data[0]
 
@@ -77,7 +77,7 @@ class ReinforceAgent(nn.Module):
         """Select the action based on the current policy."""
         if type(state) == np.ndarray:
             state = torch.from_numpy(state).float()
-        probs = self.forward(Variable(state))
+        probs = self._forward(Variable(state))
         m = Categorical(probs)
         selected_action = m.sample()
         log_prob = m.log_prob(selected_action)
@@ -105,3 +105,4 @@ class ReinforceAgent(nn.Module):
         del self.rewards[:]
         del self.saved_log_probs[:]
         logger.debug('Policy loss: {}'.format(policy_loss.data[0]))
+

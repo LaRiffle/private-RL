@@ -51,7 +51,7 @@ def main(args):
     ep_rewards = []
     ep_start_time = time.time()
 
-    for i_episode in range(args.max_episodes):
+    for i_episode in range(args.max_episodes + 1):
         # Don't loop forever, add one to the env_max_steps
         # to make sure to take the final step
         state = env.reset()
