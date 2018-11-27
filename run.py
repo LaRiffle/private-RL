@@ -2,7 +2,7 @@ import sys
 import gym
 import time
 import argparse
-
+import numpy as np
 from gym import wrappers, logger
 
 # Import environment classes
@@ -10,7 +10,7 @@ import secret_breakout
 sys.path.append('secret_breakout')
 
 # Import agent classes
-from agents import *
+from agents import RandomAgent, ReinforceAgent, ActorCriticAgent
 
 
 def main(args):
@@ -44,6 +44,12 @@ def main(args):
                                output_size=env.action_space.n,
                                learning_rate=args.learning_rate,
                                gamma=args.gamma)
+    elif args.agent_id == 'ac':
+        agent = ActorCriticAgent(input_size=len(state),
+                            hidden_size=args.hidden_size,
+                            output_size=env.action_space.n,
+                            learning_rate=5e-3,
+                            gamma=args.gamma)
 
     reward = 0
     done = False

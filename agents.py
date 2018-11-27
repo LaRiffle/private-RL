@@ -1,6 +1,9 @@
 import numpy as np
 from gym import logger
 
+from itertools import count
+from collections import namedtuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -63,7 +66,7 @@ class ReinforceAgent(nn.Module):
         # add the reward to the accumulator
         self.rewards.append(reward)
         if done:
-            self._update_policy()
+            self._update_agent()
 
         # Normalize the state
         if type(state) == np.ndarray:
@@ -85,7 +88,7 @@ class ReinforceAgent(nn.Module):
         action = selected_action
         return action
 
-    def _update_policy(self):
+    def _update_agent(self):
         """When episode finishes, calculate policy loss and update model."""
         R = 0
         policy_loss = []
@@ -106,3 +109,75 @@ class ReinforceAgent(nn.Module):
         del self.saved_log_probs[:]
         logger.debug('Policy loss: {}'.format(policy_loss.data[0]))
 
+class ActorCriticAgent(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size, 
+        learning_rate, gamma):
+        super(ActorCriticAgent, self).__init__()
+        self.affine1 = nn.Linear(input_size, hidden_size, bias=False)
+        self.action_head = nn.Linear(hidden_size, output_size, bias=False)
+        self.value_head = nn.Linear(hidden_size, 1, bias=False)
+        self.saved_actions = []
+        self.rewards = []
+        self.SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
+
+        # build in an optimizer
+        self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
+        self.normalizer = Normalizer(input_size=input_size)
+        self.gamma = gamma
+
+    def _forward(self, x):
+        x = self.affine1(x)
+        x = F.relu(x)
+        action_scores = self.action_head(x)
+        state_values = self.value_head(x)
+        return F.softmax(action_scores, dim=-1), state_values
+
+    def act(self, state, reward, done):
+        """Return the action, finish episode if done."""
+        # add the reward to the accumulator
+        self.rewards.append(reward)
+        if done:
+            self._update_agent()
+
+        # Normalize the state
+        if type(state) == np.ndarray:
+            state = torch.from_numpy(state).float()
+        self.normalizer._observe(state)
+        state = self.normalizer._normalize(state)
+        action_temp = self._select_action(state)
+        return action_temp.data[0]
+
+    def _select_action(self, state):
+        """Select the action based on the current policy."""
+        if type(state) == np.ndarray:
+            state = torch.from_numpy(state).float()
+        probs, state_value = self._forward(Variable(state))
+        m = Categorical(probs)
+        selected_action = m.sample()
+        log_prob = m.log_prob(selected_action)
+        self.saved_actions.append(self.SavedAction(log_prob, state_value))
+        action = selected_action
+        return action
+
+    def _update_agent(self):
+        R = 0
+        saved_actions = self.saved_actions
+        policy_losses = []
+        value_losses = []
+        rewards = []
+        for r in self.rewards[::-1]:
+            R = r + self.gamma * R
+            rewards.insert(0, R)
+        rewards = torch.Tensor(rewards)
+        eps = np.finfo(np.float32).eps.item()
+        rewards = (rewards - rewards.mean()) / (rewards.std() + eps)
+        for (log_prob, value), r in zip(saved_actions, rewards):
+            reward = r - value.data[0]
+            policy_losses.append(-log_prob * reward)
+            value_losses.append(F.smooth_l1_loss(value, Variable(torch.Tensor([r]))))
+        self.optimizer.zero_grad()
+        loss = torch.stack(policy_losses).sum() + torch.stack(value_losses).sum()
+        loss.backward()
+        self.optimizer.step()
+        del self.rewards[:]
+        del self.saved_actions[:]
