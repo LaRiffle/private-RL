@@ -1,7 +1,7 @@
-import random
 import torch
-from breakout import Ball, Blocks, Paddle, Rect
+import random
 from gym import Env, Space, spaces, logger
+from breakout import Ball, Blocks, Paddle, Rect
 
 
 class CorruptBreakoutEnv(Env):
@@ -54,9 +54,9 @@ class CorruptBreakoutEnv(Env):
     def _setup_breakout(self):
         self.paddle = Paddle(self.args)
         self.blocks = Blocks(self.args)
-        # TODO(korymath): random ball starting velocity 
-        # spd_init = (random.choice([-5, 5]), random.choice([-5, 5]))
+        # TODO(korymath): random ball starting velocity
         spd_init = (5, 5)
+        # spd_init = (random.choice([-5, 5]), random.choice([-5, 5]))
         self.ball = Ball(self.args, *spd_init)
 
     def reset(self):
@@ -74,7 +74,7 @@ class CorruptBreakoutEnv(Env):
         reward, _reward = self._compute_reward(dead_ball, paddle_penalty)
         next_state, done = self._build_obs(dead_ball)
 
-        info = {"hidden_reward": _reward, 
+        info = {"hidden_reward": _reward,
                 "num_blocks_destroyed": self.blocks.num_blocks_destroyed}
         return next_state, reward, done, info
 

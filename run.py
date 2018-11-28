@@ -19,20 +19,24 @@ def main(args):
     # Make the environment.
     env = gym.make(args.env_id)
 
-    # logging
-    # TODO: use run_id from this
+    # Build a unique id and run group for logging/monitoring
     unique_id = time.time()
-    outdir = 'logs/secret_breakout/' +  str(unique_id)
+    run_group = args.agent_id
+    if args.agent_id != 'random':
+        run_group +=  '_gamma{}_lr{}'.format(args.gamma, args.learning_rate)
 
-    if args.monitoring:
-        env = wrappers.Monitor(env,
-            directory=outdir,
-            video_callable=False,
-            force=False,
-            uid=unique_id)
+    outdir = ('logs/secret_breakout/{}-{}-{}-{}'.format(args.exp_prefix,
+        str(unique_id), args.env_id.replace('-','_'), run_group))
+    env = wrappers.Monitor(env,
+        directory=outdir,
+        video_callable=False,
+        force=True)
 
+    # Set the random seed if defined
     if args.seed:
+        random.seed(args.seed)
         env.seed(args.seed)
+
     state = env.reset()
 
     # Get the action and observation space from the environment.
@@ -54,7 +58,7 @@ def main(args):
         agent = ActorCriticAgent(input_size=len(state),
                             hidden_size=args.hidden_size,
                             output_size=env.action_space.n,
-                            learning_rate=5e-3,
+                            learning_rate=args.learning_rate,
                             gamma=args.gamma)
 
     reward = 0
@@ -100,20 +104,20 @@ if __name__ == '__main__':
     parser.add_argument('--env_id',
                         default='SecretBreakout-v0',
                         help='Environment: (SecretBreakout-v0, CartPole-v0)')
+    parser.add_argument('--exp_prefix',
+                        default='exp',
+                        help='Prefix for the experiment set.')
     parser.add_argument('--agent_id',
                         default='random',
                         help='Agent: (random, reinforce)')
     parser.add_argument('--log_interval',
-                        type=int, default=10, metavar='N',
+                        type=int, default=10,
                         help='interval between status logs (default: 10)')
     parser.add_argument('--max_episodes',
                         type=int, default=500,
                         help='maximum number of episodes to run')
     parser.add_argument('--verbose', action='store_true',
                         help='output verbose logging for steps')
-    parser.add_argument('--monitoring',
-                        action='store_true',
-                        help='monitor and output to log file')
     parser.add_argument('--random_action',
                         action='store_true',
                         help='Random policy for comparison')
@@ -124,28 +128,24 @@ if __name__ == '__main__':
                         help='Environment width.',
                         default=300, type=int)
     parser.add_argument('--env_height',
-                        help='Environment height.', default=400, type=int)
+                        help='Environment height.',
+                        default=400, type=int)
     parser.add_argument('--gamma',
-                        type=float, default=0.99, metavar='G',
-                        help='discount factor (default: 0.99)')
+                        type=float, default=0.99,
+                        help='discount factor')
     parser.add_argument('--learning_rate',
-                        type=float, default=1e-2,
-                        help='learning rate (default: 1e-2)')
+                        type=float, default=1e-3,
+                        help='learning rate')
     parser.add_argument('--hidden_size',
                         help='Number of units in hidden layer.',
                         default=32, type=int)
     parser.add_argument('--seed',
-                        type=int, metavar='N',
-                        help='random seed')
+                        type=int, help='random seed')
     args = parser.parse_args()
     logger.set_level(logger.INFO)
 
     if args.verbose:
-        logger.set_level(logger.INFO)
-
-    # Set the random seed if defined
-    if args.seed:
-        random.seed(args.seed)
+        logger.set_level(logger.DEBUG)
 
     # Run the training
     main(args)
