@@ -12,6 +12,7 @@ from torch.autograd import Variable
 from torch.distributions import Categorical
 from collections import namedtuple
 
+
 class Normalizer():
     def __init__(self, input_size):
         self.n = torch.zeros(input_size)

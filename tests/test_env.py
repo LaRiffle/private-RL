@@ -1,11 +1,12 @@
-import argparse
-import yaml
 import sys
+import yaml
 import torch
 import unittest
+import argparse
+
 sys.path.append('secret_breakout')
-from env import CorruptBreakoutEnv, TorchBox
 from gym import spaces
+from env import CorruptBreakoutEnv, TorchBox
 
 
 class TestSpaces(unittest.TestCase):
