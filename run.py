@@ -2,6 +2,7 @@ import sys
 import gym
 import time
 import argparse
+import syft as sy
 import numpy as np
 from gym import wrappers, logger
 
