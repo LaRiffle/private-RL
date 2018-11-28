@@ -1,6 +1,7 @@
 import sys
 import gym
 import time
+import random
 import argparse
 import syft as sy
 import numpy as np
@@ -19,15 +20,19 @@ def main(args):
     env = gym.make(args.env_id)
 
     # logging
-    outdir = 'logs/secret_breakout'
+    # TODO: use run_id from this
+    unique_id = time.time()
+    outdir = 'logs/secret_breakout/' +  str(unique_id)
 
     if args.monitoring:
         env = wrappers.Monitor(env,
             directory=outdir,
             video_callable=False,
-            force=True)
+            force=False,
+            uid=unique_id)
 
-    env.seed(args.seed)
+    if args.seed:
+        env.seed(args.seed)
     state = env.reset()
 
     # Get the action and observation space from the environment.
