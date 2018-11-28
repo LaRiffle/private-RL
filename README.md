@@ -15,7 +15,7 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-## Learn CartPole with Reinforce Agent
+## Run main training script
 ```sh
 python run.py --env_id SecretBreakout-v0 --agent_id reinforce
 ```
