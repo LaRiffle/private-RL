@@ -1,11 +1,12 @@
-import argparse
-import yaml
 import sys
+import yaml
 import torch
 import unittest
+import argparse
+
 sys.path.append('secret_breakout')
-from env import CorruptBreakoutEnv, TorchBox
 from gym import spaces
+from env import CorruptBreakoutEnv, TorchBox
 
 
 class TestSpaces(unittest.TestCase):
@@ -34,7 +35,7 @@ class TestStateFunc(unittest.TestCase):
         self.env = _build_env_from_file(stargs_filename)
         self.state = self.env.reset()
         self.ballspdx, self.ballspdy = self.state[3], self.state[4]
-        self.init_state = torch.FloatTensor([75, 150, 330,
+        self.init_state = torch.FloatTensor([100, 150, 330,
                                              self.ballspdx, self.ballspdy, 0,
                                              0, 0, 0, 20, 0, 40, 0, 60,
                                              100, 0, 100, 20, 100, 40, 100, 60,

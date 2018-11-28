@@ -1,3 +1,5 @@
+from gym import logger
+
 class Rect(object):
     def __init__(self, left, top, width, height):
         self.left = left
@@ -49,7 +51,6 @@ class Blocks(object):
         collided = False
         for block in self.blocks:
             if ball_object.collided(block, 'block'):
-                # self.blocks.remove(block)
                 # set the block to destroyed if collision occured
                 block.destroyed()
                 collided = True
@@ -67,23 +68,23 @@ class Blocks(object):
 class Paddle(Rect):
     def __init__(self, args):
         self.args = args
-        self.width = self.args.env_width // 2
+        # TODO(korymath): what is the correct size for the paddle
+        self.width = self.args.env_width // 3
         self.height = 20
-        self.initial_x = (self.args.env_width//2) - (self.width//2)
+        self.initial_x = (self.args.env_width // 2) - (self.width // 2)
         self.initial_y = self.args.env_height - 50
-        super().__init__(self.initial_x, self.initial_y,
+        self.rect = Rect(self.initial_x, self.initial_y,
                          self.width, self.height)
 
     def move(self, speed):
-        if ((self.right + speed > self.args.env_width) or
-            (self.left + speed < 0)):
+        # check if the move would collide paddle with edge
+        if ((self.rect.right + speed > self.args.env_width) or
+            (self.rect.left + speed < 0)):
             # out of bounds, do not update the paddle position
-            # print('paddle collide with side of screen')
             # TODO[jason] handle reward corruption
             return True
-        else:
-            # update the paddle position
-            super().move(speed)
+        self.rect = self.rect.move(speed)
+        return False
 
 
 class Ball(object):
@@ -101,27 +102,23 @@ class Ball(object):
     def move(self):
         # check for collision with the right side of the game screen
         if self.x + self.radius + self.speedx >= self.args.env_width:
-            if self.args.verbose:
-                print('ball collide with right side of screen')
+            logger.debug('ball collide with right side of screen')
             self.speedx = -self.speed_magnitude
 
         # check for collision with the left hand side of the game screen
         elif self.x + self.speedx <= 0:
-            if self.args.verbose:
-                print('ball collide with left side of screen')
+            logger.debug('ball collide with left side of screen')
             self.speedx = self.speed_magnitude
 
         # check for collision with the bottom of the game screen
         if self.y + self.radius + self.speedy >= self.args.env_height:
-            if self.args.verbose:
-                print('ball collide with bottom of screen')
+            logger.debug('ball collide with bottom of screen')
             self.speedy = -self.speed_magnitude
             return True
 
         # check for collision with the top of the game screen
         elif self.y + self.radius + self.speedy <= 0:
-            if self.args.verbose:
-                print('ball collide with top of screen')
+            logger.debug('ball collide with top of screen')
             self.speedy = self.speed_magnitude
 
         # update the ball position
@@ -129,14 +126,24 @@ class Ball(object):
         self.y += self.speedy
         return False
 
-    # checks if ball has collided with the rect
-    # which may be rect of block or paddle
+    # checks if ball has collided with the rect_obj
+    # which may block or paddle
     def collided(self, rect, collider):
-        if ((rect.left <= self.x + self.radius) and
-            (self.x - self.radius <= rect.right)):
-            if rect.top < self.y + self.radius < rect.bottom:
-                if self.args.verbose:
-                    print('ball collide with {}'.format(collider))
+        if collider == 'paddle':
+            left_temp = rect.rect.left
+            right_temp = rect.rect.right
+            bottom_temp = rect.rect.bottom
+            top_temp = rect.rect.top
+        else:
+            left_temp = rect.left
+            right_temp =rect.right
+            bottom_temp = rect.bottom
+            top_temp = rect.top
+
+        if ((left_temp <= self.x + self.radius) and
+            (self.x - self.radius <= right_temp)):
+            if top_temp < self.y + self.radius < bottom_temp:
+                logger.debug('ball collide with {}'.format(collider))
                 self.speedy = -self.speedy
                 # add an extra displacement to avoid double collision
                 self.y += self.speedy

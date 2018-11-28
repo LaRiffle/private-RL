@@ -16,5 +16,6 @@ args = MockArgParser(**args_dict)
 register(
     id='SecretBreakout-v0',
     entry_point='secret_breakout.env:CorruptBreakoutEnv',
-    kwargs={'args': args}
+    kwargs={'args': args},
+    max_episode_steps=1000,
 )

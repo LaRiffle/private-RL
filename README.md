@@ -15,22 +15,20 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-## Play Breakout
-
-Spacebar to start, left and right to play.
+## Learn CartPole with Reinforce Agent
 ```sh
-# example with visual interface
-python atari_breakout.py
-```
-
-## Learn Breakout
-```sh
-python reinforce_breakout.py
+python run.py --env_id SecretBreakout-v0 --agent_id reinforce
 ```
 
 ## Random Baseline
 ```sh
-python reinforce_breakout.py --random_action
+python run.py --env_id SecretBreakout-v0 --agent_id random
+```
+
+## Run Tests Manually
+
+```sh
+python -m unittest discover tests
 ```
 
 ## Credits
