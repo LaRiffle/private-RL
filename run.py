@@ -114,7 +114,7 @@ if __name__ == '__main__':
                         type=int, default=10,
                         help='interval between status logs (default: 10)')
     parser.add_argument('--max_episodes',
-                        type=int, default=500,
+                        type=int, default=200,
                         help='maximum number of episodes to run')
     parser.add_argument('--verbose', action='store_true',
                         help='output verbose logging for steps')
