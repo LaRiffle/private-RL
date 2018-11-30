@@ -55,7 +55,7 @@ class ReinforceAgent(nn.Module):
         self.gamma = gamma
 
 
-    def _forward(self, x):
+    def forward(self, x):
         x = self.affine1(x)
         x = F.relu(x)
         x = self.affine2(x)
@@ -81,7 +81,7 @@ class ReinforceAgent(nn.Module):
         """Select the action based on the current policy."""
         if type(state) == np.ndarray:
             state = torch.from_numpy(state).float()
-        probs = self._forward(Variable(state))
+        probs = self(Variable(state))
         m = Categorical(probs)
         selected_action = m.sample()
         log_prob = m.log_prob(selected_action)
@@ -126,7 +126,7 @@ class ActorCriticAgent(nn.Module):
         self.normalizer = Normalizer(input_size=input_size)
         self.gamma = gamma
 
-    def _forward(self, x):
+    def forward(self, x):
         x = self.affine1(x)
         x = F.relu(x)
         action_scores = self.action_head(x)
@@ -152,7 +152,7 @@ class ActorCriticAgent(nn.Module):
         """Select the action based on the current policy."""
         if type(state) == np.ndarray:
             state = torch.from_numpy(state).float()
-        probs, state_value = self._forward(Variable(state))
+        probs, state_value = self(Variable(state))
         m = Categorical(probs)
         selected_action = m.sample()
         log_prob = m.log_prob(selected_action)
