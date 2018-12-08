@@ -79,14 +79,7 @@ class CorruptBreakoutEnv(Env):
         return next_state, reward, done, info
 
     def _compute_reward(self, death, corruption):
-        # episode ends
-
-        # TODO(korymath): fix because the blocks are still there
-        # they are only marked as destroyed, to maintain state space
-        if len(self.blocks.blocks) <= 0:
-            logger.info('no blocks left')
-            return 0, 0
-
+        # compute the reward when the episode ends
         # observed (potentially corrupt) reward
         reward = 0
         if death:
