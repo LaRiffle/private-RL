@@ -12,14 +12,17 @@ alice = sy.VirtualWorker(id="alice", hook=hook)
 
 me.add_workers([bob, alice])
 
-# create our MDP
-# A forest is managed by two actions: ‘Wait’ and ‘Cut’.
+# Create our MDP
+# A forest is managed by two actions: 'Wait' and 'Cut'.
 # An action is decided each year with first the objective
 # to maintain an old forest for wildlife and second to
 # make money selling cut wood. Each year there is a
 # probability p that a fire burns the forest.
 
-# States: 
+# A state is Markov if and only if:
+# Transition[S_{t+1} | S{t}] = Transition[S_{t+1} | S_{1}, \dots, S{t}]
+
+# States:
 # {0, 1, ..., s-1} are states of the forest where s-1 oldest
 
 # Actions:
@@ -31,6 +34,8 @@ me.add_workers([bob, alice])
 # shape: A x S x S
 # each actions transition matrix is indexable by action
 # transitions[a] returns the S x S transition matrix
+# Defines the transition probabilities from all states (rows)
+# to all successor states (columns), each row sums to 1
 transitions = sy.FloatTensor(
                       [[[0.5, 0.5],
                         [0.8, 0.2]],
@@ -39,7 +44,7 @@ transitions = sy.FloatTensor(
                         [0.1, 0.9]]])
 
 # reward matrix
-# shape: S x A
+# shape: S x A (rows x columns)
 rewards = sy.FloatTensor([[ 5, 10],
                           [-1,  2]])
 
@@ -62,6 +67,10 @@ print('rewards: {}'.format(rewards))
 def value_iteration(transitions, rewards, gamma, max_iter=1000, epsilon=0.00001):
     """Solving the MDP using value iteration."""
     # http://www.incompleteideas.net/book/ebook/node44.html
+    # http://www0.cs.ucl.ac.uk/staff/d.silver/web/Teaching_files/MDP.pdf
+
+    # Bellman Optimality Equation is non-linear
+    # No closed form solution, need an iterative solution: Value iteration
 
     # check that epsilon is something sane
     if epsilon is not None:
@@ -73,6 +82,7 @@ def value_iteration(transitions, rewards, gamma, max_iter=1000, epsilon=0.00001)
     print('Number of actions: {}'.format(num_actions))
     print('Number of states: {}'.format(num_states))
 
+    # Initialize a value function to hold the long-term value of state s
     values = sy.zeros(num_states, 1)
     print('Initial V(s): {}'.format(values))
 
@@ -109,6 +119,8 @@ def value_iteration(transitions, rewards, gamma, max_iter=1000, epsilon=0.00001)
     print('\n************************')
     print('BUILD DETERMINISTIC POLICY')
     # Create a deterministic policy using the optimal value function
+    # A policy is a distribution over actions given states
+    # Fully defines behaviour of an agent and is stationary
     policy = sy.zeros(num_states, 1)
     for s in range(num_states):
         print('State: {}'.format(s))
