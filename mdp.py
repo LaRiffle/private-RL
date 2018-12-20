@@ -61,7 +61,7 @@ print('rewards shape: {}'.format(rewards.shape))
 # rewards.fix_precision().share(bob, alice)
 
 # Value Iteration
-def value_iteration(transitions, rewards, gamma, max_iter=1000, theta=0.00001):
+def value_iteration(transitions, rewards, gamma, max_iter=1000, theta=0.01):
     """Solving the MDP using value iteration."""
     # http://www.incompleteideas.net/book/ebook/node44.html
     # http://www0.cs.ucl.ac.uk/staff/d.silver/web/Teaching_files/MDP.pdf
@@ -80,7 +80,7 @@ def value_iteration(transitions, rewards, gamma, max_iter=1000, theta=0.00001):
     print('Number of states: {}'.format(num_states))
 
     # Initialize a value function to hold the long-term value of state s
-    values = sy.zeros(num_states, 1)
+    values = sy.zeros(num_states)
     print('Initial V(s): {}'.format(values))
 
     iteration = 0
@@ -93,24 +93,38 @@ def value_iteration(transitions, rewards, gamma, max_iter=1000, theta=0.00001):
         iteration += 1
         # Stopping condition
         delta = 0
+
+        # BELLMAN OPERATION ON THE VALUE FUNCTION
+        # action_values = sy.zeros(num_actions, num_states)
+        # for a in range(num_actions):
+        #     action_values[a] = rewards[] + gamma * transitions[a].dot(values)
+        # print('bellman Q {}'.format(action_values))
+
+        old_values = values.clone()
+
         # Update each state
         for s in range(num_states):
             # Find the best action
             action_values = sy.zeros(num_actions, 1)
-            for a in range(num_actions):
-                action_value = 0
-                for s_next in range(num_states):
-                    action_value += transitions[a, s, s_next] * (rewards[a, s] + gamma * values[s_next])
-                action_values[a] = action_value
-            print('s: {}, action values: {}'.format(s, action_values))
-            best_action_value = action_values.max()
+            Q = [rewards[a][s] + gamma * transitions[a][s, :].dot(values) for a in range(num_actions)]
+            print('Q: {}'.format(Q))
+            values[s] = max(Q)
+
+            # for a in range(num_actions):
+            #     action_value = 0
+            #     for s_next in range(num_states):
+            #         action_value += transitions[a, s, s_next] * (rewards[s_next, a] + gamma * values[s_next])
+            #     action_values[a] = action_value
+            # print('s: {}, action values: {}'.format(s, action_values))
+            # best_action_value = action_values.max()
+
             # Calculate the delta across all seen states
-            delta = max(delta, (best_action_value - values[s]).abs()[0])
+            delta = max(delta, (values.max() - old_values.min()))
             # update the value function
-            values[s] = best_action_value
+            # values[s] = best_action_value
         print('t: {}, delta: {}, ep: {}, gamma: {}'.format(iteration, delta, theta, gamma))
         # Check if we can stop
-        if delta < theta:
+        if delta < (theta * (1 - gamma) / gamma):
              break
 
     print('\n************************')
@@ -118,27 +132,37 @@ def value_iteration(transitions, rewards, gamma, max_iter=1000, theta=0.00001):
     # Create a deterministic policy using the optimal value function
     # A policy is a distribution over actions given states
     # Fully defines behaviour of an agent and is stationary
-    policy = sy.zeros(num_states, 1)
+    policy = []
     for s in range(num_states):
         # Find the best action
-        action_values = sy.zeros(num_actions, 1)
+        Q = sy.zeros(num_states, 1)
         for a in range(num_actions):
-            action_value = 0
-            for s_next in range(num_states):
-                action_value += transitions[a, s, s_next] * (rewards[a, s] + gamma * values[s_next])
-            action_values[a] = action_value
-        # print('action values: {}'.format(action_values))
-        # Argmax to get the maximizing action
-        best_action = action_values.max(0)[1]
-        # Always take the best action
-        policy[s] = best_action
+            Q[a] = (rewards[a][s] + gamma * transitions[a][s, :].dot(values))
+
+        values[s] = Q.max()
+        policy.append(Q.argmax())
+
+        # action_values = sy.zeros(num_actions, 1)
+        # for a in range(num_actions):
+        #     action_value = 0
+        #     for s_next in range(num_states):
+        #         action_value += transitions[a, s, s_next] * (rewards[s_next, a] + gamma * values[s_next])
+        #     action_values[a] = action_value
+        # # print('action values: {}'.format(action_values))
+        # # Argmax to get the maximizing action
+        # best_action = action_values.max(0)[1]
+        # # Always take the best action
+        # policy[s] = best_action
 
     return values, policy
 
 
 print('\n************************')
-values, policy = value_iteration(transitions, rewards, gamma, max_iter=1)
+values, policy = value_iteration(transitions, rewards, gamma, max_iter=10)
 print('Optimized value function:')
 print('Values: {}'.format(values))
 print('Optimized policy:')
 print('Policy: {}'.format(policy))
+
+
+# Must make sure that it is a valid MDP
