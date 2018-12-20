@@ -102,7 +102,7 @@ def value_iteration(transitions, rewards, gamma, max_iter=1000, theta=0.00001):
                 for s_next in range(num_states):
                     action_value += transitions[a, s, s_next] * (rewards[a, s] + gamma * values[s_next])
                 action_values[a] = action_value
-            print('action values: {}'.format(action_values))
+            print('s: {}, action values: {}'.format(s, action_values))
             best_action_value = action_values.max()
             # Calculate the delta across all seen states
             delta = max(delta, (best_action_value - values[s]).abs()[0])
@@ -125,7 +125,7 @@ def value_iteration(transitions, rewards, gamma, max_iter=1000, theta=0.00001):
         for a in range(num_actions):
             action_value = 0
             for s_next in range(num_states):
-                action_value += transitions[a, s, s_next] * (rewards[a, s_next] + gamma * values[s_next])
+                action_value += transitions[a, s, s_next] * (rewards[a, s] + gamma * values[s_next])
             action_values[a] = action_value
         # print('action values: {}'.format(action_values))
         # Argmax to get the maximizing action
@@ -137,7 +137,7 @@ def value_iteration(transitions, rewards, gamma, max_iter=1000, theta=0.00001):
 
 
 print('\n************************')
-values, policy = value_iteration(transitions, rewards, gamma, max_iter=2)
+values, policy = value_iteration(transitions, rewards, gamma, max_iter=1)
 print('Optimized value function:')
 print('Values: {}'.format(values))
 print('Optimized policy:')
