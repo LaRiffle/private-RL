@@ -49,7 +49,7 @@ rewards = sy.FloatTensor([[ 5, 10],
                           [-1,  2]])
 
 # discount factor
-gamma = 0.9
+gamma = 0.96
 
 print('transitions: {}'.format(transitions))
 print('transtions shape: {}'.format(transitions.shape))
@@ -57,11 +57,8 @@ print('rewards: {}'.format(rewards))
 print('rewards shape: {}'.format(rewards.shape))
 
 # Tensors now live on the remote workers
-transitions.fix_precision().share(bob, alice)
-rewards.fix_precision().share(bob, alice)
-
-print('transitions: {}'.format(transitions))
-print('rewards: {}'.format(rewards))
+# transitions.fix_precision().share(bob, alice)
+# rewards.fix_precision().share(bob, alice)
 
 # Value Iteration
 def value_iteration(transitions, rewards, gamma, max_iter=1000, theta=0.00001):
@@ -88,7 +85,7 @@ def value_iteration(transitions, rewards, gamma, max_iter=1000, theta=0.00001):
 
     iteration = 0
     while True:
-        if iteration > max_iter:
+        if iteration >= max_iter:
             break
 
         print('Iteration: {}'.format(iteration))
@@ -103,7 +100,7 @@ def value_iteration(transitions, rewards, gamma, max_iter=1000, theta=0.00001):
             for a in range(num_actions):
                 action_value = 0
                 for s_next in range(num_states):
-                    action_value += transitions[a, s, s_next] * (rewards[a, s_next] + gamma * values[s_next])
+                    action_value += transitions[a, s, s_next] * (rewards[a, s] + gamma * values[s_next])
                 action_values[a] = action_value
             print('action values: {}'.format(action_values))
             best_action_value = action_values.max()
@@ -123,7 +120,6 @@ def value_iteration(transitions, rewards, gamma, max_iter=1000, theta=0.00001):
     # Fully defines behaviour of an agent and is stationary
     policy = sy.zeros(num_states, 1)
     for s in range(num_states):
-        print('State: {}'.format(s))
         # Find the best action
         action_values = sy.zeros(num_actions, 1)
         for a in range(num_actions):
@@ -131,9 +127,9 @@ def value_iteration(transitions, rewards, gamma, max_iter=1000, theta=0.00001):
             for s_next in range(num_states):
                 action_value += transitions[a, s, s_next] * (rewards[a, s_next] + gamma * values[s_next])
             action_values[a] = action_value
-        print('action values: {}'.format(action_values))
+        # print('action values: {}'.format(action_values))
+        # Argmax to get the maximizing action
         best_action = action_values.max(0)[1]
-        print('best action: {}'.format(best_action))
         # Always take the best action
         policy[s] = best_action
 
@@ -141,7 +137,7 @@ def value_iteration(transitions, rewards, gamma, max_iter=1000, theta=0.00001):
 
 
 print('\n************************')
-values, policy = value_iteration(transitions, rewards, gamma)
+values, policy = value_iteration(transitions, rewards, gamma, max_iter=2)
 print('Optimized value function:')
 print('Values: {}'.format(values))
 print('Optimized policy:')
