@@ -64,7 +64,7 @@ print('transitions: {}'.format(transitions))
 print('rewards: {}'.format(rewards))
 
 # Value Iteration
-def value_iteration(transitions, rewards, gamma, max_iter=1000, epsilon=0.00001):
+def value_iteration(transitions, rewards, gamma, max_iter=1000, theta=0.00001):
     """Solving the MDP using value iteration."""
     # http://www.incompleteideas.net/book/ebook/node44.html
     # http://www0.cs.ucl.ac.uk/staff/d.silver/web/Teaching_files/MDP.pdf
@@ -72,10 +72,10 @@ def value_iteration(transitions, rewards, gamma, max_iter=1000, epsilon=0.00001)
     # Bellman Optimality Equation is non-linear
     # No closed form solution, need an iterative solution: Value iteration
 
-    # check that epsilon is something sane
-    if epsilon is not None:
-        epsilon = float(epsilon)
-        assert epsilon > 0, "Epsilon must be greater than 0."
+    # check theta stopping condition
+    if theta is not None:
+        theta = float(theta)
+        assert theta > 0, "Theta must be greater than 0."
 
     num_actions = rewards.shape[0]
     num_states = rewards.shape[1]
@@ -111,9 +111,9 @@ def value_iteration(transitions, rewards, gamma, max_iter=1000, epsilon=0.00001)
             delta = max(delta, (best_action_value - values[s]).abs()[0])
             # update the value function
             values[s] = best_action_value
-        print('t: {}, delta: {}, ep: {}, gamma: {}'.format(iteration, delta, epsilon, gamma))
+        print('t: {}, delta: {}, ep: {}, gamma: {}'.format(iteration, delta, theta, gamma))
         # Check if we can stop
-        if delta < epsilon:
+        if delta < theta:
              break
 
     print('\n************************')
