@@ -31,21 +31,20 @@ me.add_workers([bob, alice])
 # shape: A x S x S
 # each actions transition matrix is indexable by action
 # transitions[a] returns the S x S transition matrix
-transitions = Var(sy.FloatTensor(
+transitions = sy.FloatTensor(
                       [[[0.5, 0.5],
                         [0.8, 0.2]],
 
                        [[0. , 1.  ],
-                        [0.1, 0.9]]]))
+                        [0.1, 0.9]]])
 
 # reward matrix
 # shape: S x A
-rewards = Var(sy.FloatTensor(
-                       [[ 5, 10],
-                        [-1,  2]]))
+rewards = sy.FloatTensor([[ 5, 10],
+                          [-1,  2]])
 
 # discount factor
-gamma = sy.FloatTensor([0.96])
+gamma = 0.96
 
 print('transitions: {}'.format(transitions))
 print('transtions shape: {}'.format(transitions.shape))
@@ -82,19 +81,23 @@ def value_iteration(transitions, rewards, gamma, epsilon=0.001):
         print('V(s): {}'.format(values_prev))
         for s in range(num_states):
             print('s: {}'.format(s))
-            action_values = []
+            action_values = sy.zeros(num_actions, 1)
             for a in range(num_actions):
                 print('a: {}'.format(a))
                 total_action_value = 0
                 for s_next in range(num_states):
                     total_action_value += transitions[a, s, s_next] * (rewards[a, s_next] + gamma * values[s_next])
-                action_values.append(total_action_value)
-                print(action_values)
-                values[s] = max(action_values)
+                action_values[a] = total_action_value
+                print('action values: {}'.format(action_values))
+                values[s] = action_values.max()
+                print('value: {}'.format(values[s]))
             value_diff = (values[s] - values_prev[s]).abs()[0]
             delta = max(delta, value_diff)
 
+        print('delta: {}, ep: {}, gamma: {}'.format(delta, epsilon, gamma))
         if delta < epsilon * (1 - gamma) / gamma:
              return values
 
-value_iteration(transitions, rewards, gamma)
+print('\n************************')
+best_values = value_iteration(transitions, rewards, gamma)
+print('Best values: {}'.format(best_values))
