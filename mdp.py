@@ -44,7 +44,7 @@ rewards = sy.FloatTensor([[ 5, 10],
                           [-1,  2]])
 
 # discount factor
-gamma = 0.96
+gamma = 0.9
 
 print('transitions: {}'.format(transitions))
 print('transtions shape: {}'.format(transitions.shape))
@@ -59,9 +59,14 @@ print('transitions: {}'.format(transitions))
 print('rewards: {}'.format(rewards))
 
 # Value Iteration
-def value_iteration(transitions, rewards, gamma, epsilon=0.001):
+def value_iteration(transitions, rewards, gamma, max_iter=1000, epsilon=0.00001):
     """Solving the MDP using value iteration."""
     # http://www.incompleteideas.net/book/ebook/node44.html
+
+    # check that epsilon is something sane
+    if epsilon is not None:
+        epsilon = float(epsilon)
+        assert epsilon > 0, "Epsilon must be greater than 0."
 
     num_actions = rewards.shape[0]
     num_states = rewards.shape[1]
@@ -71,33 +76,61 @@ def value_iteration(transitions, rewards, gamma, epsilon=0.001):
     values = sy.zeros(num_states, 1)
     print('Initial V(s): {}'.format(values))
 
-    iterations = 0
+    iteration = 0
     while True:
-        print('Iteration: {}'.format(iterations))
-        iterations += 1
-        values_prev = values.clone()
+        if iteration > max_iter:
+            break
 
+        print('Iteration: {}'.format(iteration))
+        print('V(s): {}'.format(values))
+        iteration += 1
+        # Stopping condition
         delta = 0
-        print('V(s): {}'.format(values_prev))
+        # Update each state
         for s in range(num_states):
-            print('s: {}'.format(s))
+            # Find the best action
             action_values = sy.zeros(num_actions, 1)
             for a in range(num_actions):
-                print('a: {}'.format(a))
-                total_action_value = 0
+                action_value = 0
                 for s_next in range(num_states):
-                    total_action_value += transitions[a, s, s_next] * (rewards[a, s_next] + gamma * values[s_next])
-                action_values[a] = total_action_value
-                print('action values: {}'.format(action_values))
-                values[s] = action_values.max()
-                print('value: {}'.format(values[s]))
-            value_diff = (values[s] - values_prev[s]).abs()[0]
-            delta = max(delta, value_diff)
+                    action_value += transitions[a, s, s_next] * (rewards[a, s_next] + gamma * values[s_next])
+                action_values[a] = action_value
+            print('action values: {}'.format(action_values))
+            best_action_value = action_values.max()
+            # Calculate the delta across all seen states
+            delta = max(delta, (best_action_value - values[s]).abs()[0])
+            # update the value function
+            values[s] = best_action_value
+        print('t: {}, delta: {}, ep: {}, gamma: {}'.format(iteration, delta, epsilon, gamma))
+        # Check if we can stop
+        if delta < epsilon:
+             break
 
-        print('delta: {}, ep: {}, gamma: {}'.format(delta, epsilon, gamma))
-        if delta < epsilon * (1 - gamma) / gamma:
-             return values
+    print('\n************************')
+    print('BUILD DETERMINISTIC POLICY')
+    # Create a deterministic policy using the optimal value function
+    policy = sy.zeros(num_states, 1)
+    for s in range(num_states):
+        print('State: {}'.format(s))
+        # Find the best action
+        action_values = sy.zeros(num_actions, 1)
+        for a in range(num_actions):
+            action_value = 0
+            for s_next in range(num_states):
+                action_value += transitions[a, s, s_next] * (rewards[a, s_next] + gamma * values[s_next])
+            action_values[a] = action_value
+        print('action values: {}'.format(action_values))
+        best_action = action_values.max(0)[1]
+        print('best action: {}'.format(best_action))
+        # Always take the best action
+        policy[s] = best_action
+
+    return values, policy
+
 
 print('\n************************')
-best_values = value_iteration(transitions, rewards, gamma)
-print('Best values: {}'.format(best_values))
+values, policy = value_iteration(transitions, rewards, gamma)
+print('Optimized value function:')
+print('Values: {}'.format(values))
+print('Optimized policy:')
+print('Policy: {}'.format(policy))
