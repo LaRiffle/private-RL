@@ -65,6 +65,8 @@ print('rewards shape: {}'.format(rewards.shape))
 transitions.fix_precision().share(bob, alice)
 rewards.fix_precision().share(bob, alice)
 
+print(transitions)
+
 
 def argmax(iterable):
     return max(enumerate(iterable), key=lambda x: x[1])[0]
@@ -132,8 +134,8 @@ def value_iteration(transitions, rewards, gamma, max_iter=1000, theta=0.01):
     for s in range(num_states):
         # Calulate the action values
         Q = [sum(transitions[a][s, :] * (rewards[a][s, :] + gamma * values[:])) for a in range(num_actions)]
-        values[s] = max(Q)
-        policy[s] = argmax(Q)
+        print(type(transitions[0][s, :] * (rewards[0][s, :] + gamma * values[:])))
+        policy[s], values[s] = max(enumerate(Q), key=lambda x: x[1])
 
     return values, policy
 
