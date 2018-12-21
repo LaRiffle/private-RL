@@ -36,6 +36,9 @@ me.add_workers([bob, alice])
 # transitions[a] returns the S x S transition matrix
 # Defines the transition probabilities from all states (rows)
 # to all successor states (columns), each row sums to 1
+
+# TODO(korymath): must make sure that it is a valid MDP (square, stochastic, nonnegative)
+
 transitions = sy.FloatTensor(
                       [[[0.5, 0.5],
                         [0.8, 0.2]],
@@ -140,6 +143,3 @@ print('\n************************')
 values, policy = value_iteration(transitions, rewards, gamma, max_iter=100)
 print('Optimized Values: {}'.format(values))
 print('Optimized Policy: {}'.format(policy))
-
-
-# TODO(korymath): must make sure that it is a valid MDP
