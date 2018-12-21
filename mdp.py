@@ -62,8 +62,8 @@ print('rewards: {}'.format(rewards))
 print('rewards shape: {}'.format(rewards.shape))
 
 # Tensors now live on the remote workers
-# transitions.fix_precision().share(bob, alice)
-# rewards.fix_precision().share(bob, alice)
+transitions.fix_precision().share(bob, alice)
+rewards.fix_precision().share(bob, alice)
 
 
 def argmax(iterable):
@@ -92,8 +92,7 @@ def value_iteration(transitions, rewards, gamma, max_iter=1000, theta=0.01):
     values = sy.zeros(num_states)
 
     iteration = 0
-    print('t: {}, delta: {}, V(s): {}'.format(
-            iteration, None, list(values)))
+    print('t: {}, delta: {}, V(s): {}'.format(iteration, None, list(values)))
 
     while True:
         if iteration > max_iter:
