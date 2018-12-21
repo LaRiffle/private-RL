@@ -110,14 +110,15 @@ def value_iteration(values, policy, transitions, rewards, gamma, max_iter=1000, 
         # Update each state
         for s in range(num_states):
             # store the old state value
-            old_value = values[s]
+            old_values = values.clone()
 
             # Calulate the action values
             Q = [sum(transitions[a][s, :] * (rewards[a][s, :] + gamma * values[:])) for a in range(num_actions)]
             values[s] = max(Q)
 
             # Calculate the delta across all seen states
-            delta = max(delta, abs(old_value - values[s]))
+            # delta = max(delta, abs(old_value - values[s]))
+            delta = max(delta, values.max() - old_values.min())
 
         # Print stats
         print('t: {}, delta: {}, ep: {}, gamma: {}, V(s): {}'.format(
