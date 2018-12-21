@@ -60,19 +60,30 @@ print('transitions: {}'.format(transitions))
 print('transtions shape: {}'.format(transitions.shape))
 print('rewards: {}'.format(rewards))
 print('rewards shape: {}'.format(rewards.shape))
-
 # Tensors now live on the remote workers
 transitions.fix_precision().share(bob, alice)
 rewards.fix_precision().share(bob, alice)
 
-print(transitions)
+
+
+num_actions = rewards.shape[0]
+num_states = rewards.shape[1]
+print('Number of actions: {}'.format(num_actions))
+print('Number of states: {}'.format(num_states))
+
+# Initialize a policy to hold the optimal policy
+policy = sy.zeros(num_states)
+# Initialize a value function to hold the long-term value of state, s
+values = sy.zeros(num_states)
+policy.fix_precision().share(bob, alice)
+values.fix_precision().share(bob, alice)
 
 
 def argmax(iterable):
     return max(enumerate(iterable), key=lambda x: x[1])[0]
 
 # Value Iteration
-def value_iteration(transitions, rewards, gamma, max_iter=1000, theta=0.01):
+def value_iteration(values, policy, transitions, rewards, gamma, max_iter=1000, theta=0.01):
     """Solving the MDP using value iteration."""
     # http://www.incompleteideas.net/book/ebook/node44.html
     # http://www0.cs.ucl.ac.uk/staff/d.silver/web/Teaching_files/MDP.pdf
@@ -84,14 +95,6 @@ def value_iteration(transitions, rewards, gamma, max_iter=1000, theta=0.01):
     if theta is not None:
         theta = float(theta)
         assert theta > 0, "Theta must be greater than 0."
-
-    num_actions = rewards.shape[0]
-    num_states = rewards.shape[1]
-    print('Number of actions: {}'.format(num_actions))
-    print('Number of states: {}'.format(num_states))
-
-    # Initialize a value function to hold the long-term value of state s
-    values = sy.zeros(num_states)
 
     iteration = 0
     print('t: {}, delta: {}, V(s): {}'.format(iteration, None, list(values)))
@@ -127,8 +130,6 @@ def value_iteration(transitions, rewards, gamma, max_iter=1000, theta=0.01):
     # Create a deterministic policy using the optimal value function
     # A policy is a distribution over actions given states
     # Fully defines behaviour of an agent and is stationary
-    policy = sy.zeros(num_states)
-
     print('\n************************')
     print('BUILD DETERMINISTIC POLICY')
     for s in range(num_states):
@@ -141,6 +142,6 @@ def value_iteration(transitions, rewards, gamma, max_iter=1000, theta=0.01):
 
 
 print('\n************************')
-values, policy = value_iteration(transitions, rewards, gamma, max_iter=100)
+values, policy = value_iteration(values, policy, transitions, rewards, gamma, max_iter=100)
 print('Optimized Values: {}'.format(values))
 print('Optimized Policy: {}'.format(policy))
