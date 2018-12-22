@@ -116,8 +116,8 @@ print('transtions shape: {}'.format(transitions.shape))
 # print('rewards: {}'.format(rewards))
 print('rewards shape: {}'.format(rewards.shape))
 # Tensors now live on the remote workers
-# transitions.fix_precision().share(bob, alice)
-# rewards.fix_precision().share(bob, alice)
+transitions.fix_precision().share(bob, alice)
+rewards.fix_precision().share(bob, alice)
 
 num_actions = rewards.shape[0]
 num_states = rewards.shape[1]
@@ -128,8 +128,8 @@ print('Number of states: {}'.format(num_states))
 policy = sy.zeros(num_states)
 # Initialize a value function to hold the long-term value of state, s
 values = sy.zeros(num_states)
-# policy.fix_precision().share(bob, alice)
-# values.fix_precision().share(bob, alice)
+policy.fix_precision().share(bob, alice)
+values.fix_precision().share(bob, alice)
 
 
 def argmax(iterable):
