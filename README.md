@@ -15,6 +15,11 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
+## Basic MDP Examples
+```sh
+python mdp.py
+```
+
 ## Learn CartPole with Reinforce Agent
 ```sh
 python run.py --env_id SecretBreakout-v0 --agent_id reinforce
