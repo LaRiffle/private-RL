@@ -1,8 +1,5 @@
 import argparse
-
-
 import numpy as np
-
 import syft as sy
 from syft import Variable as Var
 from syft import nn
@@ -50,7 +47,6 @@ def value_iteration(values, policy, transitions, rewards, gamma, max_iter=1000, 
 
             # Calculate the delta across all seen states
             delta = max(delta, abs(old_values[s] - values[s]))
-            # delta = max(delta, values.max() - old_values.min())
 
         # Print stats
         print('t: {}, delta: {}, ep: {}, gamma: {}, V(s):\n {}'.format(
