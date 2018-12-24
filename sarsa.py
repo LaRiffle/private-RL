@@ -102,16 +102,6 @@ def main(args):
     # Make the environment.
     # env = gym.make(args.env_id)
     env = WindyGridworldEnv()
-
-    # logging
-    outdir = 'logs/window_gridworld'
-
-    if args.monitoring:
-        env = wrappers.Monitor(env,
-            directory=outdir,
-            video_callable=False,
-            force=True)
-
     env.seed(args.seed)
     state = env.reset()
 
@@ -125,7 +115,11 @@ def main(args):
 
     # Build the agent
     if args.agent_id == 'sarsa':
-        agent = SarsaAgent(num_states=env.num_states, num_actions=env.num_actions)
+        agent = SarsaAgent(
+            num_states=env.num_states,
+            num_actions=env.num_actions,
+            alpha=args.learning_rate,
+            gamma=args.gamma)
 
     reward = 0
     done = False
@@ -189,29 +183,15 @@ if __name__ == '__main__':
                         help='maximum number of episodes to run')
     parser.add_argument('--verbose', action='store_true',
                         help='output verbose logging for steps')
-    parser.add_argument('--monitoring',
-                        action='store_true',
-                        help='monitor and output to log file')
     parser.add_argument('--random_action',
                         action='store_true',
                         help='Random policy for comparison')
-    parser.add_argument('--random_ball_start_vel',
-                        action='store_true',
-                        help='Random ball starting velocity.')
-    parser.add_argument('--env_width',
-                        help='Environment width.',
-                        default=300, type=int)
-    parser.add_argument('--env_height',
-                        help='Environment height.', default=400, type=int)
     parser.add_argument('--gamma',
-                        type=float, default=0.99, metavar='G',
-                        help='discount factor (default: 0.99)')
+                        type=float, default=1.0, metavar='G',
+                        help='discount factor (default: 1.0)')
     parser.add_argument('--learning_rate',
-                        type=float, default=1e-2,
-                        help='learning rate (default: 1e-2)')
-    parser.add_argument('--hidden_size',
-                        help='Number of units in hidden layer.',
-                        default=32, type=int)
+                        type=float, default=0.5,
+                        help='learning rate (default: 0.5)')
     parser.add_argument('--seed',
                         type=int, metavar='N',
                         help='random seed')

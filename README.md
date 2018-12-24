@@ -18,6 +18,7 @@ pip install -r requirements.txt
 ## Basic MDP Examples
 ```sh
 python mdp.py
+python sarsa.py
 ```
 
 ## Learn CartPole with Reinforce Agent
