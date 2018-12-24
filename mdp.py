@@ -7,7 +7,7 @@ from syft import optim
 
 
 # Value Iteration
-def value_iteration(values, policy, transitions, rewards, gamma, max_iter=1000, theta=0.001):
+def value_iteration(values, policy, transitions, rewards, gamma, max_iter, theta):
     """Solving the MDP using value iteration."""
     # http://www.incompleteideas.net/book/ebook/node44.html
     # http://www0.cs.ucl.ac.uk/staff/d.silver/web/Teaching_files/MDP.pdf
@@ -23,7 +23,9 @@ def value_iteration(values, policy, transitions, rewards, gamma, max_iter=1000, 
     iteration = 0
     num_actions = rewards.shape[0]
     num_states = rewards.shape[1]
-    print('t: {}, delta: {}, V(s):\n {}'.format(iteration, None, np.reshape(list(values.cpu().numpy()), (4, 4))))
+    d_state = (int(np.sqrt(num_states)), int(np.sqrt(num_states)))
+    print('t: {}, delta: {}, V(s):\n {}'.format(
+        iteration, None, np.reshape(list(values.cpu().numpy()), d_state)))
 
     while True:
         if iteration > max_iter:
@@ -38,22 +40,19 @@ def value_iteration(values, policy, transitions, rewards, gamma, max_iter=1000, 
             # store the old state value
             old_values = values.clone()
 
-            # Calulate the action values
-            action_values = sy.zeros(num_actions)
-            for a in range(num_actions):
-                for s_next in range(num_states):
-                    action_values[a] += transitions[a, s, s_next] * (rewards[a, s, s_next] + (gamma * values[s_next]))
-            values[s] = action_values.max()
+            # Sum over next states, and max over actions
+            values[s] = (transitions * (rewards + (gamma * values))).sum(2)[:, s].max()
 
             # Calculate the delta across all seen states
             delta = max(delta, abs(old_values[s] - values[s]))
 
         # Print stats
-        print('t: {}, delta: {}, ep: {}, gamma: {}, V(s):\n {}'.format(
-            iteration, delta, theta, gamma, np.reshape(list(values.cpu().numpy()), (4, 4))))
+        print('t: {}, d: {}, g: {}, V:\n {}'.format(
+            iteration, delta,
+            gamma[0], np.reshape(list(values.cpu().numpy()), d_state)))
 
         # Check if we can stop
-        if delta <= (theta * (1 - gamma) / gamma):
+        if delta <= theta:
              break
 
     # Create a deterministic policy using the optimal value function
@@ -62,12 +61,10 @@ def value_iteration(values, policy, transitions, rewards, gamma, max_iter=1000, 
     print('\n************************')
     print('BUILD DETERMINISTIC POLICY')
     for s in range(num_states):
-        # Calulate the action values
-        action_values = sy.zeros(num_actions)
-        for a in range(num_actions):
-            for s_next in range(num_states):
-                action_values[a] += transitions[a, s, s_next] * (rewards[a, s, s_next] + (gamma * values[s_next]))
-        policy[s], values[s] = max(enumerate(action_values), key=lambda x: x[1])
+        # Sum over next states, and max over actions
+        v, i = (transitions * (rewards + (gamma * values))).sum(2)[:, s].max(0)
+        values[s] = v[0]
+        policy[s] = i[0]
 
     return values, policy
 
@@ -75,7 +72,6 @@ def gridworld():
     """4x4 gridworld example."""
     # number of states
     S = 16
-
 
     # number of actions
     A = 4
@@ -136,7 +132,9 @@ def main(args):
     transitions.fix_precision().share(bob, alice)
     rewards.fix_precision().share(bob, alice)
 
-    # TODO(korymath): assert that transitions and rewards are shaped the same
+    # assert that transitions and rewards are shaped the same
+    assert rewards.shape == transitions.shape
+
     num_actions = rewards.shape[0]
     num_states = rewards.shape[1]
     print('Number of actions: {}'.format(num_actions))
@@ -149,24 +147,33 @@ def main(args):
     policy.fix_precision().share(bob, alice)
     values.fix_precision().share(bob, alice)
 
+    # Share theta and gamma for learning
+    gamma = args.gamma * sy.ones(1)
+    gamma.fix_precision().share(bob, alice)
+    theta = args.theta * sy.ones(1)
+    theta.fix_precision().share(bob, alice)
+
     # run value iteration
     values, policy = value_iteration(
         values=values,
         policy=policy,
         transitions=transitions,
         rewards=rewards,
-        gamma=args.gamma,
+        gamma=gamma,
+        theta=theta,
         max_iter=args.max_iter)
 
     # print results
     print('\n************************')
-    print('Optimized Values:\n {}'.format(np.reshape(list(values), (4, 4))))
-    print('Optimized Policy:\n {}'.format(np.reshape(list(policy), (4, 4))))
+    d_state = (int(np.sqrt(num_states)), int(np.sqrt(num_states)))
+    print('Optimized Values:\n {}'.format(np.reshape(list(values), d_state)))
+    print('Optimized Policy:\n {}'.format(np.reshape(list(policy), d_state)))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'PySyft MDP Gridworld')
     parser.add_argument('--gamma', type=float, default=1.0, help='Discount factor')
+    parser.add_argument('--theta', type=float, default=0.0001, help='Learning threshold')
     parser.add_argument('--max_iter', type=int, default=10, help='Maximum number of iterations')
     args = parser.parse_args()
 
