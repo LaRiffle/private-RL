@@ -112,28 +112,30 @@ def gridworld():
 
     return P, R
 
+
 def main(args):
-    # this is our hook
+    """Main run function."""
+
+    # PySyft hook
     hook = sy.TorchHook()
     me = hook.local_worker
-
     bob = sy.VirtualWorker(id="bob", hook=hook)
     alice = sy.VirtualWorker(id="alice", hook=hook)
-
     me.add_workers([bob, alice])
 
+    # Build the gridworld
     transitions, rewards = gridworld()
+    # assert that transitions and rewards are shaped the same
+    assert rewards.shape == transitions.shape
 
     # print('transitions: {}'.format(transitions))
     print('transtions shape: {}'.format(transitions.shape))
     # print('rewards: {}'.format(rewards))
     print('rewards shape: {}'.format(rewards.shape))
+
     # Tensors now live on the remote workers
     transitions.fix_precision().share(bob, alice)
     rewards.fix_precision().share(bob, alice)
-
-    # assert that transitions and rewards are shaped the same
-    assert rewards.shape == transitions.shape
 
     num_actions = rewards.shape[0]
     num_states = rewards.shape[1]

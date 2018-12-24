@@ -111,7 +111,7 @@ class ReinforceAgent(nn.Module):
         logger.debug('Policy loss: {}'.format(policy_loss.data[0]))
 
 class ActorCriticAgent(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, 
+    def __init__(self, input_size, hidden_size, output_size,
         learning_rate, gamma):
         super(ActorCriticAgent, self).__init__()
         self.affine1 = nn.Linear(input_size, hidden_size, bias=False)
