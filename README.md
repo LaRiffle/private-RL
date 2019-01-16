@@ -17,6 +17,7 @@ pip install -r requirements.txt
 
 ## Basic MDP Examples
 ```sh
+source venv/bin/activate
 python mdp.py
 python sarsa.py
 ```
