@@ -202,8 +202,8 @@ def main(args):
     print('Optimized Values:\n {}'.format(np.reshape(list(values), d_state)))
     print('Optimized Policy:\n {}'.format(np.reshape(list(policy), d_state)))
 
-    print('Bob objects: {}'.format(bob._objects))
-    print('Alice objects: {}'.format(alice._objects))
+    # print('Bob objects: {}'.format(bob._objects))
+    # print('Alice objects: {}'.format(alice._objects))
 
 
 def public_private_add(x_pub, y_priv):
