@@ -207,7 +207,7 @@ def main(args):
 
 
 def public_private_add(x_pub, y_priv):
-    x_pub *= 1000  # fixp 10**3
+    x_pub = x_pub * 1000  # fixp 10**3
     if not isinstance(x_pub, sy.LongTensor):
         x_pub = x_pub.long()
     gen_pointer = tail(y_priv)
@@ -222,7 +222,7 @@ def public_private_add(x_pub, y_priv):
 
 
 def public_private_mul(x_pub, y_priv):
-    x_pub *= 1000 # fixp 10**3
+    x_pub = x_pub # fixp 10**3
     if not isinstance(x_pub, sy.LongTensor):
         x_pub = x_pub.long()
     gen_pointer = tail(y_priv)
@@ -232,7 +232,7 @@ def public_private_mul(x_pub, y_priv):
         x_ptr = x_pub.clone().send(worker)
         y_ptr = pointer.wrap()
         y_ptr *= x_ptr
-        y_ptr /= 1000 # rm fixp 10**3
+        y_ptr # rm fixp 10**3
     return y_priv
 
 
