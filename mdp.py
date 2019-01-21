@@ -12,22 +12,20 @@ hook = sy.TorchHook()
 me = hook.local_worker
 bob = sy.VirtualWorker(id="bob", hook=hook)
 alice = sy.VirtualWorker(id="alice", hook=hook)
-bob.add_workers([alice])
-alice.add_workers([bob])
+
 
 # Value Iteration
-def value_iteration(values, policy, transitions,
-                    rewards, gamma, max_iter, theta):
+def value_iteration(values, policy, transitions, rewards, gamma, max_iter, theta):
     """Solving the MDP using value iteration."""
 
     iteration = 0
     num_actions = rewards.shape[0]
     num_states = rewards.shape[1]
     d_state = (int(np.sqrt(num_states)), int(np.sqrt(num_states)))
-    print('t: {}, delta: {}, V(s):\n {}'.format(iteration, None, None))
+    print("t: {}, delta: {}, V(s):\n {}".format(iteration, None, None))
 
     while True:
-        print('**************')
+        print("**************")
         if iteration >= max_iter:
             break
         iteration += 1
@@ -37,7 +35,7 @@ def value_iteration(values, policy, transitions,
 
         # Update each state
         for s in range(num_states):
-            print('state', s)
+            print("state", s)
             # store the old state value
             old_values = values.clone()
 
@@ -52,10 +50,10 @@ def value_iteration(values, policy, transitions,
             values = private_set(values, s, new_value_s)
 
             # Calculate the delta across all seen states
-            delta_step = (old_values[s] - values[s])
+            delta_step = old_values[s] - values[s]
             logic_abs = lambda x: x - 2 * x * ((x * -1) > x)
             absolute_delta_step = logic_abs(delta_step)
-            logic_max = lambda x, y: x + (y - x)*(y > x)
+            logic_max = lambda x, y: x + (y - x) * (y > x)
             if delta is not None:
                 delta = logic_max(delta, absolute_delta_step)
             else:
@@ -63,25 +61,27 @@ def value_iteration(values, policy, transitions,
 
         # Print stats
         values = values.get().decode()
-        print('t: {}, d: {}, g: {}, V:\n {}'.format(
-            iteration,
-            None,  # delta
-            None,  # gamma[0]
-            np.reshape(list(values.cpu().numpy()), d_state)
-        ))
+        print(
+            "t: {}, d: {}, g: {}, V:\n {}".format(
+                iteration,
+                None,  # delta
+                None,  # gamma[0]
+                np.reshape(list(values.cpu().numpy()), d_state),
+            )
+        )
         values = values.fix_precision().share(alice, bob)
 
         # Check if we can stop
         if (delta <= theta).get().decode().byte().all():
-             break
+            break
 
     # Create a deterministic policy using the optimal value function
     # A policy is a distribution over actions given states and
     # fully defines behaviour of an agent and is stationary
-    print('\n************************')
-    print('BUILD DETERMINISTIC POLICY')
+    print("\n************************")
+    print("BUILD DETERMINISTIC POLICY")
     for s in range(num_states):
-        print('step', s)
+        print("step", s)
 
         # Sum over next states, and max over actions
         discounted_values = gamma * values.repeat(num_actions, num_states, 1)
@@ -179,7 +179,7 @@ def public_private_add(x_pub, y_priv):
 
 
 def public_private_mul(x_pub, y_priv):
-    x_pub = x_pub # fixp 10**3
+    x_pub = x_pub
     if not isinstance(x_pub, sy.LongTensor):
         x_pub = x_pub.long()
     gen_pointer = tail(y_priv)
@@ -189,7 +189,7 @@ def public_private_mul(x_pub, y_priv):
         x_ptr = x_pub.clone().send(worker)
         y_ptr = pointer.wrap()
         y_ptr *= x_ptr
-        y_ptr # rm fixp 10**3
+        y_ptr
     return y_priv
 
 
@@ -217,9 +217,9 @@ def main(args):
     transitions, rewards = gridworld()
 
     # print('transitions: {}'.format(transitions))
-    print('transtions shape: {}'.format(transitions.shape))
+    print("transtions shape: {}".format(transitions.shape))
     # print('rewards: {}'.format(rewards))
-    print('rewards shape: {}'.format(rewards.shape))
+    print("rewards shape: {}".format(rewards.shape))
 
     # Tensors now live on the remote workers
     transitions.fix_precision().share(bob, alice)
@@ -227,11 +227,11 @@ def main(args):
 
     num_actions = rewards.shape[0]
     num_states = rewards.shape[1]
-    print('Number of actions: {}'.format(num_actions))
-    print('Number of states: {}'.format(num_states))
+    print("Number of actions: {}".format(num_actions))
+    print("Number of states: {}".format(num_states))
 
     # Initialize a policy to hold the optimal policy
-    policy = sy.zeros(num_states)
+    policy = sy.zeros(num_states, num_actions)
     # Initialize a value function to hold the long-term value of state, s
     values = sy.zeros(num_states)
     policy = policy.fix_precision().share(bob, alice)
@@ -261,29 +261,22 @@ def main(args):
     policy = policy.get().decode()
 
     # print results
-    print('\n************************')
+    print("\n************************")
     d_state = (int(np.sqrt(num_states)), int(np.sqrt(num_states)))
-    print('Optimized Values:\n {}'.format(
-        np.reshape(list(values), d_state)))
-    print('Optimized Policy:\n {}'.format(
-        np.reshape(list(policy), d_state)))
+    print("Optimized Values:\n {}".format(np.reshape(list(values), d_state)))
+    print("Optimized Policy:\n {}".format(np.reshape(list(policy), d_state)))
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='PySyft MDP Gridworld')
-    parser.add_argument('--gamma', type=float,
-        default=1.0, help='Discount factor')
-    parser.add_argument('--theta', type=float,
-        default=0.0001, help='Learning threshold')
-    parser.add_argument('--max_iter', type=int,
-        default=10, help='Maximum number of iterations')
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="PySyft MDP Gridworld")
+    parser.add_argument("--gamma", type=float, default=1.0, help="Discount factor")
+    parser.add_argument(
+        "--theta", type=float, default=0.0001, help="Learning threshold"
+    )
+    parser.add_argument(
+        "--max_iter", type=int, default=10, help="Maximum number of iterations"
+    )
     args = parser.parse_args()
-
-    # PySyft hook
-    hook = sy.TorchHook()
-    me = hook.local_worker
-    bob = sy.VirtualWorker(id="bob", hook=hook)
-    alice = sy.VirtualWorker(id="alice", hook=hook)
-    me.add_workers([bob, alice])
 
     # Run the main function
     main(args)
