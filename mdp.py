@@ -87,12 +87,14 @@ def value_iteration(values, policy, transitions, rewards, gamma, max_iter, theta
         discounted_values = gamma * values.repeat(num_actions, num_states, 1)
         step_return = public_private_add(rewards, discounted_values)
         proba_return = public_private_mul(transitions, step_return)
-        exp_val = proba_return.sum(2)[:, s].unsqueeze(0)
+        expected_value = proba_return.sum(2)[:, s].unsqueeze(0)
+        new_value_s = expected_value.max()
+        new_policy_s = new_value_s == expected_value
+        new_value_s = new_value_s[0]
+        new_policy_s = new_policy_s[0]
 
-        # cleaning
-        exp_val = exp_val.get().decode().fix_precision().share(alice, bob)
-        new_value_s = exp_val.max()[0]
         values = private_set(values, s, new_value_s)
+        policy = private_set(policy, s, new_policy_s)
         # TODO: update policy as well using .max() -> .max(0)
         # v, i = (transitions * (rewards + (gamma * values))).sum(2)[:, s].max(0)
         # values[s] = v[0]
@@ -259,6 +261,10 @@ def main(args):
     )
     values = values.get().decode()
     policy = policy.get().decode()
+    # replace one hot vectors that indicate argmax with the index
+    print(policy)
+    policy = policy.max(1)[1]
+    print(policy)
 
     # print results
     print("\n************************")
