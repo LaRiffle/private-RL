@@ -2,6 +2,7 @@ import argparse
 import numpy as np
 import syft as sy
 from syft.core.frameworks.torch.utils import find_tail_of_chain as tail
+import time
 
 STATE_SIZE = 4
 STATE_AREA = STATE_SIZE ** 2
@@ -109,10 +110,10 @@ def gridworld():
     S = STATE_AREA
 
     # number of actions
-    assert ACTION_SIZE == 4
-    A = 4
+    A = ACTION_SIZE
+    assert ACTION_SIZE % 4 == 0
     # indices of the actions
-    up, down, right, left = range(A)
+    up, down, right, left = range(A)[:4]
 
     # Transitions.
     T = sy.zeros((A, S, S))
@@ -124,22 +125,22 @@ def gridworld():
         for a in range(A):
             next_state = None
 
-            if a == up:
+            if a % 4 == up:
                 next_state = state - STATE_SIZE
                 # upper side
                 if next_state < 0:
                     next_state = state
-            if a == down:
+            if a % 4 == down:
                 next_state = state + STATE_SIZE
                 # down side
                 if next_state >= STATE_AREA:
                     next_state = state
-            if a == right:
+            if a % 4 == right:
                 next_state = state + 1
                 # east side
                 if (state + 1) % STATE_SIZE == 0:
                     next_state = state
-            if a == left:
+            if a % 4 == left:
                 next_state = state - 1
                 # west side
                 if state % STATE_SIZE == 0:
@@ -273,7 +274,8 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="PySyft MDP Gridworld")
-    parser.add_argument("--states", type=int, default=4, help="Number of states")
+    parser.add_argument("--states", type=int, default=4, help="Width of square grid")
+    parser.add_argument("--actions", type=int, default=4, help="Number of actions (mult of 4)")
     parser.add_argument("--gamma", type=float, default=1.0, help="Discount factor")
     parser.add_argument(
         "--theta", type=float, default=0.0001, help="Learning threshold"
@@ -284,6 +286,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     STATE_SIZE = args.states
+    ACTION_SIZE = args.actions
     STATE_AREA = STATE_SIZE ** 2
 
     # Run the main function
