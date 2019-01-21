@@ -3,6 +3,17 @@ import numpy as np
 import syft as sy
 from syft.core.frameworks.torch.utils import find_tail_of_chain as tail
 
+STATE_SIZE = 4
+STATE_AREA = STATE_SIZE ** 2
+ACTION_SIZE = 4
+
+# PySyft hook
+hook = sy.TorchHook()
+me = hook.local_worker
+bob = sy.VirtualWorker(id="bob", hook=hook)
+alice = sy.VirtualWorker(id="alice", hook=hook)
+bob.add_workers([alice])
+alice.add_workers([bob])
 
 # Value Iteration
 def value_iteration(values, policy, transitions,
@@ -31,16 +42,13 @@ def value_iteration(values, policy, transitions,
             old_values = values.clone()
 
             # Sum over next states, and max over actions
-            discounted_values = gamma * values.repeat(
-                num_actions, num_states, 1)
+            # Private equivalent of:
+            # values[s] = (transitions * (rewards + (gamma * values))).sum(2)[:, s].max()
+            discounted_values = gamma * values.repeat(num_actions, num_states, 1)
             step_return = public_private_add(rewards, discounted_values)
             proba_return = public_private_mul(transitions, step_return)
-            # expected value
-            exp_val = proba_return.sum(2)[:, s].unsqueeze(0)
-
-            # cleaning
-            exp_val = exp_val.get().decode().fix_precision().share(alice, bob)
-            new_value_s = exp_val.max()[0]
+            expected_value = proba_return.sum(2)[:, s].unsqueeze(0)
+            new_value_s = expected_value.max()[0]
             values = private_set(values, s, new_value_s)
 
             # Calculate the delta across all seen states
@@ -94,11 +102,12 @@ def value_iteration(values, policy, transitions,
 
 
 def gridworld():
-    """4x4 gridworld example."""
+    """nxn gridworld example."""
     # number of states
-    S = 16
+    S = STATE_AREA
 
     # number of actions
+    assert ACTION_SIZE == 4
     A = 4
     # indices of the actions
     up, down, right, left = range(A)
@@ -107,25 +116,41 @@ def gridworld():
     T = sy.zeros((A, S, S))
 
     # Grid transitions.
-    grid_transitions = {
-        # from_state: ((action, to_state), ...)
-        0: ((up, 0), (down, 0), (right, 0), (left, 0)),
-        1: ((up, 1), (down, 5), (right, 2), (left, 0)),
-        2: ((up, 2), (down, 6), (right, 3), (left, 1)),
-        3: ((up, 3), (down, 7), (right, 3), (left, 2)),
-        4: ((up, 0), (down, 8), (right, 5), (left, 4)),
-        5: ((up, 1), (down, 9), (right, 6), (left, 4)),
-        6: ((up, 2), (down, 10), (right, 7), (left, 5)),
-        7: ((up, 3), (down, 11), (right, 7), (left, 6)),
-        8: ((up, 4), (down, 12), (right, 9), (left, 8)),
-        9: ((up, 5), (down, 13), (right, 10), (left, 8)),
-        10: ((up, 6), (down, 14), (right, 11), (left, 9)),
-        11: ((up, 7), (down, 15), (right, 11), (left, 10)),
-        12: ((up, 8), (down, 12), (right, 13), (left, 12)),
-        13: ((up, 9), (down, 13), (right, 14), (left, 12)),
-        14: ((up, 10), (down, 14), (right, 15), (left, 13)),
-        15: ((up, 15), (down, 15), (right, 15), (left, 15))
-    }
+    grid_transitions = {}
+    for state in range(STATE_AREA):
+        actions = []
+        for a in range(A):
+            next_state = None
+
+            if a == up:
+                next_state = state - STATE_SIZE
+                # upper side
+                if next_state < 0:
+                    next_state = state
+            if a == down:
+                next_state = state + STATE_SIZE
+                # down side
+                if next_state >= STATE_AREA:
+                    next_state = state
+            if a == right:
+                next_state = state + 1
+                # east side
+                if (state + 1) % STATE_SIZE == 0:
+                    next_state = state
+            if a == left:
+                next_state = state - 1
+                # west side
+                if state % STATE_SIZE == 0:
+                    next_state = state
+
+            # final case
+            if state == 0 or state == STATE_AREA - 1:
+                next_state = state
+
+            actions.append((a, next_state))
+
+        grid_transitions[state] = tuple(actions)
+
     for i, moves in grid_transitions.items():
         for a, j in moves:
             T[a, i, j] = 1.0
@@ -133,7 +158,7 @@ def gridworld():
     # Rewards.
     R = sy.ones((A, S, S)).mul(-1)
     R[:, 0, :] = 0
-    R[:, 15, :] = 0
+    R[:, STATE_AREA - 1, :] = 0
 
     return T, R
 
