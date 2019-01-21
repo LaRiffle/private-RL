@@ -262,9 +262,7 @@ def main(args):
     values = values.get().decode()
     policy = policy.get().decode()
     # replace one hot vectors that indicate argmax with the index
-    print(policy)
     policy = policy.max(1)[1]
-    print(policy)
 
     # print results
     print("\n************************")
@@ -275,6 +273,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="PySyft MDP Gridworld")
+    parser.add_argument("--states", type=int, default=4, help="Number of states")
     parser.add_argument("--gamma", type=float, default=1.0, help="Discount factor")
     parser.add_argument(
         "--theta", type=float, default=0.0001, help="Learning threshold"
@@ -283,6 +282,9 @@ if __name__ == "__main__":
         "--max_iter", type=int, default=10, help="Maximum number of iterations"
     )
     args = parser.parse_args()
+
+    STATE_SIZE = args.states
+    STATE_AREA = STATE_SIZE ** 2
 
     # Run the main function
     main(args)
