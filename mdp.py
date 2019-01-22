@@ -2,7 +2,6 @@ import argparse
 import numpy as np
 import syft as sy
 from syft.core.frameworks.torch.utils import find_tail_of_chain as tail
-import time
 
 STATE_SIZE = 4
 STATE_AREA = STATE_SIZE ** 2
@@ -20,8 +19,9 @@ def value_iteration(values, policy, transitions, rewards, gamma, max_iter, theta
     """Solving the MDP using value iteration."""
 
     iteration = 0
-    num_actions = rewards.shape[0]
-    num_states = rewards.shape[1]
+    rewards_shape = rewards.get_shape()
+    num_actions = rewards_shape[0]
+    num_states = rewards_shape[1]
     d_state = (int(np.sqrt(num_states)), int(np.sqrt(num_states)))
     print("t: {}, delta: {}, V(s):\n {}".format(iteration, None, None))
 
@@ -44,8 +44,8 @@ def value_iteration(values, policy, transitions, rewards, gamma, max_iter, theta
             # Private equivalent of:
             # values[s] = (transitions * (rewards + (gamma * values))).sum(2)[:, s].max()
             discounted_values = gamma * values.repeat(num_actions, num_states, 1)
-            step_return = public_private_add(rewards, discounted_values)
-            proba_return = public_private_mul(transitions, step_return)
+            step_return = rewards + discounted_values
+            proba_return = transitions * step_return
             expected_value = proba_return.sum(2)[:, s].unsqueeze(0)
             new_value_s = expected_value.max()[0]
             values = private_set(values, s, new_value_s)
@@ -86,8 +86,8 @@ def value_iteration(values, policy, transitions, rewards, gamma, max_iter, theta
 
         # Sum over next states, and max over actions
         discounted_values = gamma * values.repeat(num_actions, num_states, 1)
-        step_return = public_private_add(rewards, discounted_values)
-        proba_return = public_private_mul(transitions, step_return)
+        step_return = rewards + discounted_values
+        proba_return = transitions * step_return
         expected_value = proba_return.sum(2)[:, s].unsqueeze(0)
         new_value_s = expected_value.max()
         new_policy_s = new_value_s == expected_value
@@ -224,14 +224,12 @@ def main(args):
     # print('rewards: {}'.format(rewards))
     print("rewards shape: {}".format(rewards.shape))
 
-    # Tensors now live on the remote workers
-    transitions.fix_precision().share(bob, alice)
-    rewards.fix_precision().share(bob, alice)
-
     num_actions = rewards.shape[0]
     num_states = rewards.shape[1]
     print("Number of actions: {}".format(num_actions))
     print("Number of states: {}".format(num_states))
+    rewards = rewards.fix_precision().share(bob, alice)
+    transitions = transitions.fix_precision().share(bob, alice)
 
     # Initialize a policy to hold the optimal policy
     policy = sy.zeros(num_states, num_actions)
@@ -274,7 +272,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="PySyft MDP Gridworld")
-    parser.add_argument("--states", type=int, default=4, help="Width of square grid")
+    parser.add_argument("--states", type=int, default=4, help="Width of the gridworld")
     parser.add_argument("--actions", type=int, default=4, help="Number of actions (mult of 4)")
     parser.add_argument("--gamma", type=float, default=1.0, help="Discount factor")
     parser.add_argument(
