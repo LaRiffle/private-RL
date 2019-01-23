@@ -76,6 +76,8 @@ def value_iteration(values, policy, transitions, rewards, gamma, max_iter, theta
         if (delta <= theta).get().decode().byte().all():
             break
 
+        assert False
+
     # Create a deterministic policy using the optimal value function
     # A policy is a distribution over actions given states and
     # fully defines behaviour of an agent and is stationary
@@ -228,6 +230,8 @@ def main(args):
     num_states = rewards.shape[1]
     print("Number of actions: {}".format(num_actions))
     print("Number of states: {}".format(num_states))
+
+    # Tensors now live on the remote workers
     rewards = rewards.fix_precision().share(bob, alice)
     transitions = transitions.fix_precision().share(bob, alice)
 
