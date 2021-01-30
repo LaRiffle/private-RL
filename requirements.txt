@@ -65,7 +65,7 @@ sphinx-rtd-theme==0.4.2
 sphinxcontrib-websupport==1.1.0
 -e git://github.com/OpenMined/PySyft.git#egg=syft
 tensorboard==1.12.0
-tensorflow==1.15.4
+tensorflow==2.4.0
 termcolor==1.1.0
 toml==0.10.0
 torch==0.3.1
