@@ -77,3 +77,4 @@ virtualenv==16.1.0
 wcwidth==0.1.7
 websockets==10.0
 Werkzeug==0.15.3
+setuptools>=65.5.1 # not directly required, pinned by Snyk to avoid a vulnerability
