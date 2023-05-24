@@ -56,7 +56,7 @@ python-dateutil==2.7.5
 pytz==2018.7
 PyYAML==5.4
 pyzmq==17.1.2
-requests==2.20.1
+requests==2.31.0
 scipy==1.1.0
 six==1.11.0
 snowballstemmer==1.2.1
