@@ -60,7 +60,7 @@ requests==2.20.1
 scipy==1.1.0
 six==1.11.0
 snowballstemmer==1.2.1
-Sphinx==3.0.4
+Sphinx==3.3.0
 sphinx-rtd-theme==0.4.2
 sphinxcontrib-websupport==1.1.0
 -e git://github.com/OpenMined/PySyft.git#egg=syft
