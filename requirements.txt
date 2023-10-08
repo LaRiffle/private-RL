@@ -26,7 +26,7 @@ imagesize==1.1.0
 importlib-metadata==0.7
 importlib-resources==1.0.2
 ipykernel==5.1.0
-ipython==7.16.3
+ipython==8.10.0
 ipython-genutils==0.2.0
 jedi==0.13.1
 Jinja2==2.11.3
@@ -50,7 +50,7 @@ protobuf==3.18.3
 ptyprocess==0.6.0
 pygame==1.9.4
 pyglet==1.3.2
-Pygments==2.7.4
+Pygments==2.15.0
 pyparsing==2.3.0
 python-dateutil==2.7.5
 pytz==2018.7
@@ -69,7 +69,7 @@ tensorflow==2.5.3
 termcolor==1.1.0
 toml==0.10.0
 torch==0.3.1
-tornado==5.1.1
+tornado==6.3.3
 tqdm==4.28.1
 traitlets==4.3.2
 urllib3==1.26.5
@@ -78,3 +78,4 @@ wcwidth==0.1.7
 websockets==10.0
 Werkzeug==0.15.3
 wheel>=0.38.0 # not directly required, pinned by Snyk to avoid a vulnerability
+setuptools>=65.5.1 # not directly required, pinned by Snyk to avoid a vulnerability
