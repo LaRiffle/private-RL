@@ -76,6 +76,6 @@ urllib3==1.26.5
 virtualenv==16.1.0
 wcwidth==0.1.7
 websockets==10.0
-Werkzeug==0.15.3
+Werkzeug==2.2.3
 wheel>=0.38.0 # not directly required, pinned by Snyk to avoid a vulnerability
 setuptools>=65.5.1 # not directly required, pinned by Snyk to avoid a vulnerability
